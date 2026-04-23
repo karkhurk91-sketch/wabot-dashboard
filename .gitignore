@@ -1,0 +1,21 @@
+# Python
+venv/
+venv_new/
+__pycache__/
+*.pyc
+
+# Env
+.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+node_modules/
