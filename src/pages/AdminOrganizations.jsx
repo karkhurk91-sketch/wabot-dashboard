@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const AdminOrganizations = () => {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingOrg, setEditingOrg] = useState(null);
+  const [expandedOrg, setExpandedOrg] = useState(null);
+  const [orgUsers, setOrgUsers] = useState({});
   const [form, setForm] = useState({
     name: '',
     business_type: '',
@@ -17,7 +20,6 @@ const AdminOrganizations = () => {
     plan: 'basic',
     admin_email: '',
     admin_password: '',
-    wat_org: ''
   });
 
   useEffect(() => { fetchOrgs(); }, []);
@@ -53,15 +55,19 @@ const AdminOrganizations = () => {
       }
       setShowModal(false);
       setEditingOrg(null);
-      setForm({
-        name: '', business_type: '', whatsapp_phone_number: '', whatsapp_phone_number_id: '',
-        whatsapp_access_token: '', whatsapp_business_account_id: '', status: 'pending', plan: 'basic',
-        admin_email: '', admin_password: '', wat_org: ''
-      });
+      resetForm();
       fetchOrgs();
     } catch (err) {
       alert(err.response?.data?.detail || 'Operation failed');
     }
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: '', business_type: '', whatsapp_phone_number: '', whatsapp_phone_number_id: '',
+      whatsapp_access_token: '', whatsapp_business_account_id: '', status: 'pending', plan: 'basic',
+      admin_email: '', admin_password: '',
+    });
   };
 
   const handleDelete = async (id) => {
@@ -88,9 +94,38 @@ const AdminOrganizations = () => {
       plan: org.plan || 'basic',
       admin_email: '',
       admin_password: '',
-      wat_org: ''
     });
     setShowModal(true);
+  };
+
+  const toggleUserList = async (orgId) => {
+    if (expandedOrg === orgId) {
+      setExpandedOrg(null);
+    } else {
+      setExpandedOrg(orgId);
+      if (!orgUsers[orgId]) {
+        try {
+          const res = await api.get(`/api/admin/organizations/${orgId}/users`);
+          setOrgUsers(prev => ({ ...prev, [orgId]: res.data }));
+        } catch (err) {
+          alert('Failed to load users');
+        }
+      }
+    }
+  };
+
+  const toggleEmailVerified = async (userId, currentStatus) => {
+    try {
+      await api.patch(`/api/admin/users/${userId}/verify-email`, { email_verified: !currentStatus });
+      // Refresh user list for the current expanded organization
+      const orgId = expandedOrg;
+      if (orgId) {
+        const res = await api.get(`/api/admin/organizations/${orgId}/users`);
+        setOrgUsers(prev => ({ ...prev, [orgId]: res.data }));
+      }
+    } catch (err) {
+      alert('Failed to update email verification');
+    }
   };
 
   if (loading) return <div className="p-6">Loading organizations...</div>;
@@ -102,11 +137,7 @@ const AdminOrganizations = () => {
         <button
           onClick={() => {
             setEditingOrg(null);
-            setForm({
-              name: '', business_type: '', whatsapp_phone_number: '', whatsapp_phone_number_id: '',
-              whatsapp_access_token: '', whatsapp_business_account_id: '', status: 'pending', plan: 'basic',
-              admin_email: '', admin_password: '', wat_org: ''
-            });
+            resetForm();
             setShowModal(true);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -129,32 +160,76 @@ const AdminOrganizations = () => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {orgs.map(org => (
-              <tr key={org.id}>
-                <td className="px-6 py-4">{org.name}</td>
-                <td className="px-6 py-4">{org.whatsapp_phone_number || '-'}</td>
-                <td className="px-6 py-4">
-                  <select
-                    onChange={(e) => updateStatus(org.id, e.target.value)}
-                    value={org.status}
-                    className="text-sm border rounded px-2 py-1"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
-                </td>
-                <td className="px-6 py-4">{org.plan || 'basic'}</td>
-                <td className="px-6 py-4">{new Date(org.created_at).toLocaleDateString()}</td>
-                <td className="px-6 py-4 space-x-2">
-                  <button onClick={() => startEdit(org)} className="text-blue-600 hover:underline">Edit</button>
-                  <button onClick={() => handleDelete(org.id)} className="text-red-600 hover:underline">Delete</button>
-                </td>
-              </tr>
+              <React.Fragment key={org.id}>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4">{org.name}</td>
+                  <td className="px-6 py-4">{org.whatsapp_phone_number || '-'}</td>
+                  <td className="px-6 py-4">
+                    <select
+                      onChange={(e) => updateStatus(org.id, e.target.value)}
+                      value={org.status}
+                      className="text-sm border rounded px-2 py-1"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </td>
+                  <td className="px-6 py-4">{org.plan || 'basic'}</td>
+                  <td className="px-6 py-4">{new Date(org.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 space-x-2">
+                    <button onClick={() => startEdit(org)} className="text-blue-600 hover:underline">Edit</button>
+                    <button onClick={() => handleDelete(org.id)} className="text-red-600 hover:underline">Delete</button>
+                    <button
+                      onClick={() => toggleUserList(org.id)}
+                      className="text-gray-600 hover:underline flex items-center gap-1"
+                    >
+                      {expandedOrg === org.id ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
+                      Users
+                    </button>
+                  </td>
+                </tr>
+                {expandedOrg === org.id && orgUsers[org.id] && (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="min-w-full bg-white">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-sm">Email</th>
+                              <th className="px-4 py-2 text-left text-sm">Name</th>
+                              <th className="px-4 py-2 text-left text-sm">Role</th>
+                              <th className="px-4 py-2 text-left text-sm">Email Verified</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orgUsers[org.id].map(user => (
+                              <tr key={user.id} className="border-t">
+                                <td className="px-4 py-2">{user.email}</td>
+                                <td className="px-4 py-2">{user.full_name || '-'}</td>
+                                <td className="px-4 py-2">{user.role}</td>
+                                <td className="px-4 py-2">
+                                  <button
+                                    onClick={() => toggleEmailVerified(user.id, user.email_verified)}
+                                    className={`px-2 py-1 text-xs rounded ${
+                                      user.email_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }`}
+                                  >
+                                    {user.email_verified ? 'Verified' : 'Unverified'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
             {orgs.length === 0 && (
-              <tr>
-                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">No organizations found</td>
-              </tr>
+              <tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">No organizations found</td></tr>
             )}
           </tbody>
         </table>
@@ -171,12 +246,11 @@ const AdminOrganizations = () => {
               <input type="text" placeholder="WhatsApp Phone Number (e.g., +1234567890)" value={form.whatsapp_phone_number} onChange={e => setForm({...form, whatsapp_phone_number: e.target.value})} className="w-full border p-2 rounded" />
               <input type="text" placeholder="WhatsApp Phone Number ID" value={form.whatsapp_phone_number_id} onChange={e => setForm({...form, whatsapp_phone_number_id: e.target.value})} className="w-full border p-2 rounded" />
               
-              {/* WhatsApp Access Token as textarea */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Access Token</label>
                 <textarea
-                  value={form.wat_org}
-                  onChange={e => setForm({...form, wat_org: e.target.value})}
+                  value={form.whatsapp_access_token}
+                  onChange={e => setForm({...form, whatsapp_access_token: e.target.value})}
                   rows={4}
                   className="w-full border p-2 rounded font-mono text-sm"
                   placeholder="Paste the long access token here..."
@@ -200,8 +274,8 @@ const AdminOrganizations = () => {
               </div>
               {!editingOrg && (
                 <>
-                  <input type="email" placeholder="Admin Email *" value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})} className="w-full border p-2 rounded"  />
-                  <input type="password" placeholder="Admin Password *" value={form.admin_password} onChange={e => setForm({...form, admin_password: e.target.value})} className="w-full border p-2 rounded"  />
+                  <input type="email" placeholder="Admin Email *" value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})} className="w-full border p-2 rounded" required />
+                  <input type="password" placeholder="Admin Password *" value={form.admin_password} onChange={e => setForm({...form, admin_password: e.target.value})} className="w-full border p-2 rounded" required />
                 </>
               )}
               <div className="flex justify-end gap-2 pt-4">
