@@ -30,6 +30,19 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow"><h3 className="text-gray-500 text-sm">Leads</h3><p className="text-3xl font-bold">{stats.totalLeads}</p></div>
         <div className="bg-white p-6 rounded-lg shadow"><h3 className="text-gray-500 text-sm">Messages</h3><p className="text-3xl font-bold">{stats.totalMessages}</p></div>
       </div>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-gray-500 text-sm">WhatsApp Messages</h3>
+        <div className="flex justify-between items-baseline">
+          <p className="text-3xl font-bold">{stats.marketing + stats.utility}</p>
+          <select className="text-xs border rounded p-1">
+            <option>This month</option>
+          </select>
+        </div>
+        <div className="mt-2 text-sm">
+          <span className="text-green-600">📢 Marketing: {stats.marketing}</span> |
+          <span className="text-blue-600 ml-2">🔧 Utility: {stats.utility}</span>
+        </div>
+      </div>
     </div>
   );
 };

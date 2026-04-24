@@ -9,8 +9,9 @@ const Sidebar = () => {
   const adminItems = [
     { path: '/admin/dashboard', name: 'Dashboard', icon: '📊' },
     { path: '/admin/organizations', name: 'Organizations', icon: '🏢' },
-    { path: '/admin/analytics', name: 'Global Analytics', icon: '📈' },
-    { path: '/admin/ai-config-global', name: 'Global AI Config', icon: '🤖' },
+    { path: '/admin/prompts', name: 'AI Prompts', icon: '🤖' },
+    { path: '/admin/ai-test', name: 'AI Agent', icon: '💬' },
+    { path: '/admin/analytics', name: 'Global Analytics', icon: '📈' }
   ];
 
   const orgItems = [
@@ -19,10 +20,8 @@ const Sidebar = () => {
     { path: '/conversations', name: 'Conversations', icon: '💬' },
     { path: '/leads', name: 'Leads', icon: '🎯' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢' },
-    { path: '/ai-config', name: 'AI Config', icon: '🤖' },
     { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚' },
     { path: '/analytics', name: 'Analytics', icon: '📈' },
-    { path: '/ai-chat', name: 'AI Agent', icon: '💬' },
     { path: '/bookings', name: 'Bookings', icon: '📅' },
     { path: '/calendar', name: 'Calendar', icon: '📆' },
     { path: '/profile', name: 'Profile', icon: '⚙️' }

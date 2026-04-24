@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', access_token);
     const decoded = jwtDecode(access_token);
     setUser(decoded);
-    return response.data;
+    return decoded;
   };
 
   const logout = () => {
