@@ -19,6 +19,7 @@ const LandingPage = () => {
               <a href="#problem" className="text-gray-700 hover:text-green-600">Problem</a>
               <a href="#solution" className="text-gray-700 hover:text-green-600">Solution</a>
               <a href="#features" className="text-gray-700 hover:text-green-600">Features</a>
+              <a href="#use-cases" className="text-gray-700 hover:text-green-600">Use Cases</a>   {/* NEW */}
               <a href="#how-it-works" className="text-gray-700 hover:text-green-600">How it works</a>
               <a href="#who" className="text-gray-700 hover:text-green-600">Who it's for</a>
               <a href="#pricing" className="text-gray-700 hover:text-green-600">Pricing</a>
@@ -106,6 +107,48 @@ const LandingPage = () => {
         </div>
       </section>
 
+      <section id="use-cases" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="text-sm text-green-600 font-semibold tracking-wide uppercase">Use Cases</div>
+            <h2 className="text-3xl md:text-5xl font-bold mt-2">Powered by the same AI – now for <span className="text-green-600">every business function</span></h2>
+            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">One platform. Six super‑agents. Zero complexity.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">🤖</div>
+              <h3 className="text-xl font-bold mb-2">AI Customer Service Agent</h3>
+              <p className="text-gray-600">24/7 replies on WhatsApp, Facebook, Instagram, Telegram. Handles FAQs, order status, and support – automatically.</p>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">💰</div>
+              <h3 className="text-xl font-bold mb-2">AI Sales Agent</h3>
+              <p className="text-gray-600">Recommends products, shares catalogues via RAG, captures leads, and nudges customers toward purchase – even while you sleep.</p>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">📅</div>
+              <h3 className="text-xl font-bold mb-2">AI Booking Agent</h3>
+              <p className="text-gray-600">Books appointments for salons, restaurants, real estate, coaching. Syncs with your calendar and sends reminders.</p>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold mb-2">AI Lead Qualification Agent</h3>
+              <p className="text-gray-600">Auto‑detects buying intent via keywords, creates leads with status (new → contacted → converted → lost). Never miss a hot prospect.</p>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">⚙️</div>
+              <h3 className="text-xl font-bold mb-2">Agent Studio</h3>
+              <p className="text-gray-600">Super admin manages multiple prompts per organization, sets primary prompt, tunes temperature, and controls escalation – full studio for AI personality.</p>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-5xl mb-4">🧠</div>
+              <h3 className="text-xl font-bold mb-2">Build Your AI Agent</h3>
+              <p className="text-gray-600">Pluggable industry modules (salon, restaurant, real estate) + RAG over your own docs + custom prompts – build your perfect agent without coding.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Solution Section (Two Superpowers) */}
       <section id="solution" className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4">
@@ -130,6 +173,8 @@ const LandingPage = () => {
           <p className="text-center text-gray-600 mt-8 max-w-2xl mx-auto">The result: owners never miss a message, save 20+ hours a week, and close more sales — without the customer installing anything.</p>
         </div>
       </section>
+
+
 
       {/* How it works (5 steps) */}
       <section id="how-it-works" className="py-20 bg-white">

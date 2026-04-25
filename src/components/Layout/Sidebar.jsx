@@ -11,7 +11,9 @@ const Sidebar = () => {
     { path: '/admin/organizations', name: 'Organizations', icon: '🏢' },
     { path: '/admin/prompts', name: 'AI Prompts', icon: '🤖' },
     { path: '/admin/ai-test', name: 'AI Agent', icon: '💬' },
-    { path: '/admin/analytics', name: 'Global Analytics', icon: '📈' }
+    { path: '/admin/analytics', name: 'Global Analytics', icon: '📈' },
+    { path: '/admin/blogs', name: 'Blogs', icon: '📝' },
+    { path: '/admin/channels', name: 'Channels', icon: '🔌' }   // <-- NEW
   ];
 
   const orgItems = [
@@ -24,8 +26,8 @@ const Sidebar = () => {
     { path: '/analytics', name: 'Analytics', icon: '📈' },
     { path: '/bookings', name: 'Bookings', icon: '📅' },
     { path: '/calendar', name: 'Calendar', icon: '📆' },
-    { path: '/profile', name: 'Profile', icon: '⚙️' }
-
+    { path: '/profile', name: 'Profile', icon: '⚙️' },
+    { path: '/channels', name: 'Channels', icon: '🔌' }          // <-- NEW
   ];
 
   const items = isSuperAdmin ? adminItems : orgItems;

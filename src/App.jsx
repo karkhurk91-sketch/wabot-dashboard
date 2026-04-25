@@ -7,23 +7,26 @@ import ProtectedRoute from './components/Common/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';  // create this page (see below)
+import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import SuperAdminSignup from './pages/SuperAdminSignup';
 import AdminAITest from './pages/AdminAITest';
 import LandingPage from './pages/LandingPage';
 import OrganizationSignup from './pages/OrganizationSignup';
-
+import BlogList from './pages/BlogList';
+import BlogDetail from './pages/BlogDetail';
 
 // Super admin pages
-import AdminDashboard from './pages/AdminDashboard';  // you'll rename Dashboard to AdminDashboard
+import AdminDashboard from './pages/AdminDashboard';
 import AdminOrganizations from './pages/AdminOrganizations';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminAIConfigGlobal from './pages/AdminAIConfigGlobal';
 import AdminPrompts from './pages/AdminPrompts';
+import AdminBlogs from './pages/AdminBlogs';
+import AdminChannels from './pages/AdminChannels';   // <-- Import
 
 // Organization pages
-import OrgDashboard from './pages/OrgDashboard';      // new dashboard for org
+import OrgDashboard from './pages/OrgDashboard';
 import Customers from './pages/Customers';
 import Conversations from './pages/Conversations';
 import Leads from './pages/Leads';
@@ -35,8 +38,7 @@ import Profile from './pages/Profile';
 import AIChat from './pages/AIChat';
 import Bookings from './pages/Bookings';
 import Calendar from './pages/Calendar';
-// ... inside Routes, under organization routes
-
+import OrganizationChannels from './pages/OrganizationChannels';   // <-- Import
 
 function App() {
   return (
@@ -53,17 +55,21 @@ function App() {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/super-admin-signup" element={<SuperAdminSignup />} />
           <Route path="/signup" element={<OrganizationSignup />} />
+          <Route path="/blogs" element={<BlogList />} />
+          <Route path="/blogs/:slug" element={<BlogDetail />} />
 
           {/* Super admin routes */}
-          <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="super_admin"><AdminDashboard /></ProtectedRoute>} />          
+          <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="super_admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/organizations" element={<ProtectedRoute requiredRole="super_admin"><AdminOrganizations /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="super_admin"><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/ai-config-global" element={<ProtectedRoute requiredRole="super_admin"><AdminAIConfigGlobal /></ProtectedRoute>} />
           <Route path="/admin/prompts" element={<ProtectedRoute requiredRole="super_admin"><AdminPrompts /></ProtectedRoute>} />
           <Route path="/admin/ai-test" element={<ProtectedRoute requiredRole="super_admin"><AdminAITest /></ProtectedRoute>} />
+          <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="super_admin"><AdminBlogs /></ProtectedRoute>} />
+          <Route path="/admin/channels" element={<ProtectedRoute requiredRole="super_admin"><AdminChannels /></ProtectedRoute>} />   {/* NEW */}
 
           {/* Organization routes */}
-          <Route path="/dashboard" element={<ProtectedRoute requiredRole="org_admin"><OrgDashboard /></ProtectedRoute>} />          
+          <Route path="/dashboard" element={<ProtectedRoute requiredRole="org_admin"><OrgDashboard /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute requiredRole="org_admin"><Customers /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute requiredRole="org_admin"><Conversations /></ProtectedRoute>} />
           <Route path="/leads" element={<ProtectedRoute requiredRole="org_admin"><Leads /></ProtectedRoute>} />
@@ -75,9 +81,9 @@ function App() {
           <Route path="/ai-chat" element={<ProtectedRoute requiredRole="org_admin"><AIChat /></ProtectedRoute>} />
           <Route path="/bookings" element={<ProtectedRoute requiredRole="org_admin"><Bookings /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute requiredRole="org_admin"><Calendar /></ProtectedRoute>} />
+          <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />   {/* NEW */}
 
-
-          {/* Default redirect */}
+          {/* Default redirect (this may conflict with root, keep only if needed) */}
           <Route path="/" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
