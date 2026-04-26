@@ -11,9 +11,11 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.7.9",
+    "chart.js": "^4.5.1",
     "jwt-decode": "^4.0.0",
     "react": "^18.3.1",
     "react-calendar": "^6.0.1",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.3.1",
     "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^6.28.0",

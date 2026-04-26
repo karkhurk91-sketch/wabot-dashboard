@@ -20,6 +20,7 @@ const AdminOrganizations = () => {
     plan: 'basic',
     admin_email: '',
     admin_password: '',
+    enable_lead_capture: true,  // new field
   });
 
   useEffect(() => { fetchOrgs(); }, []);
@@ -49,7 +50,12 @@ const AdminOrganizations = () => {
     e.preventDefault();
     try {
       if (editingOrg) {
+        // Update organization
         await api.put(`/api/admin/organizations/${editingOrg.id}`, form);
+        // Update AI config (lead capture)
+        await api.put(`/api/admin/organizations/${editingOrg.id}/ai-config`, {
+          enable_lead_capture: form.enable_lead_capture
+        });
       } else {
         await api.post('/api/admin/organizations', form);
       }
@@ -66,7 +72,7 @@ const AdminOrganizations = () => {
     setForm({
       name: '', business_type: '', whatsapp_phone_number: '', whatsapp_phone_number_id: '',
       whatsapp_access_token: '', whatsapp_business_account_id: '', status: 'pending', plan: 'basic',
-      admin_email: '', admin_password: '',
+      admin_email: '', admin_password: '', enable_lead_capture: true,
     });
   };
 
@@ -81,7 +87,7 @@ const AdminOrganizations = () => {
     }
   };
 
-  const startEdit = (org) => {
+  const startEdit = async (org) => {
     setEditingOrg(org);
     setForm({
       name: org.name,
@@ -94,7 +100,15 @@ const AdminOrganizations = () => {
       plan: org.plan || 'basic',
       admin_email: '',
       admin_password: '',
+      enable_lead_capture: true,
     });
+    // Fetch AI config for this organization
+    try {
+      const res = await api.get(`/api/admin/organizations/${org.id}/ai-config`);
+      setForm(prev => ({ ...prev, enable_lead_capture: res.data.enable_lead_capture ?? true }));
+    } catch (err) {
+      console.error('Failed to fetch AI config', err);
+    }
     setShowModal(true);
   };
 
@@ -117,7 +131,6 @@ const AdminOrganizations = () => {
   const toggleEmailVerified = async (userId, currentStatus) => {
     try {
       await api.patch(`/api/admin/users/${userId}/verify-email`, { email_verified: !currentStatus });
-      // Refresh user list for the current expanded organization
       const orgId = expandedOrg;
       if (orgId) {
         const res = await api.get(`/api/admin/organizations/${orgId}/users`);
@@ -229,7 +242,9 @@ const AdminOrganizations = () => {
               </React.Fragment>
             ))}
             {orgs.length === 0 && (
-              <tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">No organizations found</td></tr>
+              <tr>
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">No organizations found</td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -272,6 +287,19 @@ const AdminOrganizations = () => {
                   <option value="enterprise">Enterprise</option>
                 </select>
               </div>
+
+              {/* Lead capture toggle */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enable_lead_capture"
+                  checked={form.enable_lead_capture}
+                  onChange={e => setForm({...form, enable_lead_capture: e.target.checked})}
+                  className="mr-2"
+                />
+                <label htmlFor="enable_lead_capture" className="text-sm">Enable automatic lead capture</label>
+              </div>
+
               {!editingOrg && (
                 <>
                   <input type="email" placeholder="Admin Email *" value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})} className="w-full border p-2 rounded" required />
