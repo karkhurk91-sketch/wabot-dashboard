@@ -39,6 +39,8 @@ import AIChat from './pages/AIChat';
 import Bookings from './pages/Bookings';
 import Calendar from './pages/Calendar';
 import OrganizationChannels from './pages/OrganizationChannels';   // <-- Import
+import Campaigns from './pages/Campaigns';
+import CampaignDetail from './pages/CampaignDetail';
 
 function App() {
   return (
@@ -81,6 +83,8 @@ function App() {
           <Route path="/ai-chat" element={<ProtectedRoute requiredRole="org_admin"><AIChat /></ProtectedRoute>} />
           <Route path="/bookings" element={<ProtectedRoute requiredRole="org_admin"><Bookings /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute requiredRole="org_admin"><Calendar /></ProtectedRoute>} />
+          <Route path="/campaigns" element={<ProtectedRoute requiredRole="org_admin"><Campaigns /></ProtectedRoute>} />
+          <Route path="/campaigns/:id" element={<ProtectedRoute requiredRole="org_admin"><CampaignDetail /></ProtectedRoute>} />
           <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />   {/* NEW */}
 
           {/* Default redirect (this may conflict with root, keep only if needed) */}

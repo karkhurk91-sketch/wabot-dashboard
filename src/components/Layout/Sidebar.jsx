@@ -20,6 +20,7 @@ const Sidebar = () => {
   const orgItems = [
     { path: '/dashboard', name: 'Dashboard', icon: '📊' },
     { path: '/customers', name: 'Customers', icon: '👥' },
+    { path: '/campaigns', name: 'Campaigns', icon: '📢' },
     { path: '/conversations', name: 'Conversations', icon: '💬' },
     { path: '/leads', name: 'Leads', icon: '🎯' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢' },
