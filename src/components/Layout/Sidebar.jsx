@@ -24,6 +24,7 @@ const Sidebar = () => {
     { path: '/conversations', name: 'Conversations', icon: '💬' },
     { path: '/leads', name: 'Leads', icon: '🎯' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢' },
+    { path: '/ai-config', name: 'AI prompt', icon: '🤖' },
     { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚' },
     { path: '/analytics', name: 'Analytics', icon: '📈' },
     { path: '/bookings', name: 'Bookings', icon: '📅' },

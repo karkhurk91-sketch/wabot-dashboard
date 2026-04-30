@@ -13,4 +13,6 @@ export const campaignApi = {
   delete: (id) => api.delete(`/api/campaign/${id}`),
   suggestTags: (data) => api.post('/api/campaign/suggest-tags', data),
   generateAdKit: (data) => api.post('/api/campaign/generate-ad-kit', data),
+  createAdCampaign: (campaignId, data) => api.post(`/api/campaign/${campaignId}/create-ad-campaign`, data),
+
 };

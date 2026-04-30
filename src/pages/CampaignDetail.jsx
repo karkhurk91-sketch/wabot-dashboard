@@ -33,6 +33,19 @@ export default function CampaignDetail() {
   const [postResult, setPostResult] = useState(null);
   const [generatingTags, setGeneratingTags] = useState(false);
 
+  // Facebook Ad Campaign state
+  const [adBudget, setAdBudget] = useState(500); // ₹5 daily
+  const [adTargetingLocation, setAdTargetingLocation] = useState('');
+  const [adAgeMin, setAdAgeMin] = useState(18);
+  const [adAgeMax, setAdAgeMax] = useState(65);
+  const [leadQuestions, setLeadQuestions] = useState([
+    { key: 'full_name', label: 'Full Name', type: 'CUSTOM' },
+    { key: 'email', label: 'Email Address', type: 'CUSTOM' },
+    { key: 'phone', label: 'Phone Number', type: 'CUSTOM' }
+  ]);
+  const [creatingAd, setCreatingAd] = useState(false);
+  const [adCampaignResult, setAdCampaignResult] = useState(null);
+
   // UI steps
   const [step, setStep] = useState(1);
 
@@ -159,6 +172,52 @@ export default function CampaignDetail() {
     }
   };
 
+  const handleCreateAdCampaign = async () => {
+    if (!selectedImageUrl) {
+      alert('Please select an image creative first (ad requires an image).');
+      return;
+    }
+    setCreatingAd(true);
+    try {
+      const targeting = {
+        geo_locations: adTargetingLocation ? { cities: [{ name: adTargetingLocation }] } : { countries: ['IN'] },
+        age_min: adAgeMin,
+        age_max: adAgeMax
+      };
+      const dailyBudgetPaise = adBudget * 100;
+      const fbLeadQuestions = leadQuestions.map(q => ({
+        key: q.key || q.label.toLowerCase().replace(/\s/g, '_'),
+        label: q.label,
+        type: q.type
+      }));
+      const storySpec = {
+        page_id: '', // will be filled by backend
+        link_data: {
+          message: editableCaption,
+          link: useWhatsappCta ? whatsappLink : customCtaUrl || '',
+          call_to_action: { type: 'LEARN_MORE' }
+        }
+      };
+      if (selectedImageUrl) storySpec.link_data.image_url = selectedImageUrl;
+
+      const res = await campaignApi.createAdCampaign(id, {
+        platform: 'facebook',
+        name: `Ad for ${campaign.name}`,
+        daily_budget: dailyBudgetPaise,
+        targeting: targeting,
+        lead_form_questions: fbLeadQuestions,
+        story_spec: storySpec,
+        start_time: new Date().toISOString()
+      });
+      setAdCampaignResult(res.data);
+      alert('Ad campaign created! Check Facebook Ads Manager.');
+    } catch (err) {
+      alert('Failed to create ad campaign: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setCreatingAd(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div></div>;
   if (!campaign) return <div className="text-center text-red-600 p-6">Campaign not found</div>;
 
@@ -280,11 +339,9 @@ export default function CampaignDetail() {
               </div>
             )}
           </div>
-          {/* FIX: Button enabled when whatsappLink is truthy */}
           <button
             onClick={() => setStep(4)}
-                        className={`w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium shadow-md transition ${!whatsappLink ? 'opacity-50 ' : 'hover:bg-indigo-700'}`}
-            key={whatsappLink}  // force re-render when link changes
+            className={`w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium shadow-md transition ${!whatsappLink ? 'opacity-50 ' : 'hover:bg-indigo-700'}`}
           >
             Preview Post →
           </button>
@@ -364,6 +421,113 @@ export default function CampaignDetail() {
             {posting ? <span className="flex items-center justify-center gap-2"><span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> Publishing...</span> : 'Publish to Facebook / Instagram'}
           </button>
           {postResult && <div className="text-center text-green-600">✅ Posted! Post ID: {postResult.post_id}</div>}
+        </div>
+      )}
+
+      {/* Step 5 – Facebook Ad Campaign (shown only after Step 4 and an image is selected) */}
+      {step === 4 && selectedImageUrl && (
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 mt-8">
+          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+            <span className="bg-purple-100 text-purple-700 w-8 h-8 rounded-full inline-flex items-center justify-center text-sm font-bold">5</span>
+            Boost with Facebook Ads
+          </h2>
+          <p className="text-gray-500 text-sm mb-4">
+            Turn this post into a Facebook lead generation ad. Reach more people and capture leads directly.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Daily Budget (₹)</label>
+              <input
+                type="number"
+                value={adBudget}
+                onChange={(e) => setAdBudget(parseInt(e.target.value) || 0)}
+                className="w-full border rounded-lg p-2"
+                min="100"
+                step="50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Targeting (City/Region) – optional</label>
+              <input
+                type="text"
+                value={adTargetingLocation}
+                onChange={(e) => setAdTargetingLocation(e.target.value)}
+                placeholder="e.g., Indore, India"
+                className="w-full border rounded-lg p-2"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Min Age</label>
+                <input type="number" value={adAgeMin} onChange={(e) => setAdAgeMin(parseInt(e.target.value))} className="border rounded-lg p-2 w-full" min="13" max="100" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Max Age</label>
+                <input type="number" value={adAgeMax} onChange={(e) => setAdAgeMax(parseInt(e.target.value))} className="border rounded-lg p-2 w-full" min="13" max="100" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Lead Form Questions</label>
+              {leadQuestions.map((q, idx) => (
+                <div key={idx} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={q.label}
+                    onChange={(e) => {
+                      const newQuestions = [...leadQuestions];
+                      newQuestions[idx].label = e.target.value;
+                      setLeadQuestions(newQuestions);
+                    }}
+                    className="flex-1 border rounded p-2"
+                    placeholder="Question label"
+                  />
+                  <select
+                    value={q.type}
+                    onChange={(e) => {
+                      const newQuestions = [...leadQuestions];
+                      newQuestions[idx].type = e.target.value;
+                      setLeadQuestions(newQuestions);
+                    }}
+                    className="border rounded p-2"
+                  >
+                    <option value="CUSTOM">Short Answer</option>
+                    <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                  </select>
+                  <button
+                    onClick={() => setLeadQuestions(leadQuestions.filter((_, i) => i !== idx))}
+                    className="text-red-500 px-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setLeadQuestions([...leadQuestions, { key: `custom_${leadQuestions.length + 1}`, label: 'New Question', type: 'CUSTOM' }])}
+                className="text-indigo-600 text-sm"
+              >
+                + Add Question
+              </button>
+            </div>
+
+            <button
+              onClick={handleCreateAdCampaign}
+              disabled={creatingAd}
+              className="w-full bg-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-purple-700 transition disabled:opacity-50"
+            >
+              {creatingAd ? 'Creating Ad Campaign...' : 'Create Facebook Lead Ad Campaign'}
+            </button>
+
+            {adCampaignResult && (
+              <div className="text-green-600 text-sm mt-2">
+                ✅ Campaign created! Campaign ID: {adCampaignResult.campaign_id}<br />
+                Ad ID: {adCampaignResult.ad_id}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
