@@ -8,13 +8,25 @@ const CustomerSelector = ({ selectedIds, onToggle, customers, loading }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const filtered = customers.filter(c =>
+  const filtered = (customers || []).filter(c =>
     (c.name?.toLowerCase().includes(search.toLowerCase()) ||
      c.phone_number?.includes(search) ||
      c.email?.toLowerCase().includes(search.toLowerCase()))
   );
   const paginated = filtered.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const allCurrentPageSelected = paginated.length > 0 && paginated.every(c => selectedIds.includes(c.id));
+
+  const handleMasterCheck = (e) => {
+    const pageIds = paginated.map(c => c.id);
+    if (e.target.checked) {
+      // Add all page IDs to selection (without duplicates)
+      onToggle(pageIds, true);  // true means add
+    } else {
+      // Remove page IDs from selection
+      onToggle(pageIds, false); // false means remove
+    }
+  };
 
   return (
     <div>
@@ -37,10 +49,13 @@ const CustomerSelector = ({ selectedIds, onToggle, customers, loading }) => {
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 w-10"><input type="checkbox" onChange={e => {
-                if (e.target.checked) onToggle(paginated.map(c => c.id));
-                else onToggle(paginated.map(c => c.id).filter(id => selectedIds.includes(id)));
-              }} /></th>
+              <th className="px-4 py-2 w-10">
+                <input
+                  type="checkbox"
+                  checked={allCurrentPageSelected}
+                  onChange={handleMasterCheck}
+                />
+              </th>
               <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Phone</th>
               <th className="px-4 py-2 text-left">Email</th>
@@ -49,7 +64,13 @@ const CustomerSelector = ({ selectedIds, onToggle, customers, loading }) => {
           <tbody>
             {paginated.map(c => (
               <tr key={c.id} className="border-t">
-                <td className="px-4 py-2"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => onToggle(c.id)} /></td>
+                <td className="px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(c.id)}
+                    onChange={() => onToggle(c.id)}
+                  />
+                </td>
                 <td className="px-4 py-2">{c.name || '-'}</td>
                 <td className="px-4 py-2">{c.phone_number || '-'}</td>
                 <td className="px-4 py-2">{c.email || '-'}</td>
@@ -98,8 +119,13 @@ const Broadcast = () => {
   };
 
   const fetchCustomers = async () => {
-    const res = await api.get('/api/customers');
-    setCustomers(res.data);
+    try {
+      const res = await api.get('/api/customers');
+      // The API returns paginated object { data: [...], total, page }
+      setCustomers(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch customers', err);
+    }
   };
 
   const fetchMetaTemplates = async (channel) => {
@@ -117,22 +143,33 @@ const Broadcast = () => {
       setExpandedChannel(null);
     } else {
       setExpandedChannel(channel);
-      fetchMetaTemplates(channel);
+      if (channel === 'whatsapp' && !metaTemplates.whatsapp) {
+        fetchMetaTemplates(channel);
+      }
     }
   };
 
-  const toggleCustomerSelection = (channel, customerIdOrList) => {
+  // Universal toggle for customer selection (handles both single ID and array)
+  const toggleCustomerSelection = (channel, ids, addMode = null) => {
     setSelectedCustomers(prev => {
       const current = prev[channel] || [];
       let updated;
-      if (Array.isArray(customerIdOrList)) {
-        // bulk toggle on page select – simple: add all not already added? We'll implement a proper handler in the selector.
-        // For simplicity, we'll replace the selection with the full page list.
-        // This requires a more advanced implementation; we'll just keep the single toggle for now.
+      if (Array.isArray(ids)) {
+        if (addMode === true) {
+          // Add all ids not already in selection
+          updated = [...current, ...ids.filter(id => !current.includes(id))];
+        } else if (addMode === false) {
+          // Remove all ids from selection
+          updated = current.filter(id => !ids.includes(id));
+        } else {
+          // If addMode not provided, replace selection with these ids
+          updated = [...ids];
+        }
       } else {
-        updated = current.includes(customerIdOrList)
-          ? current.filter(id => id !== customerIdOrList)
-          : [...current, customerIdOrList];
+        // Single ID toggle
+        updated = current.includes(ids)
+          ? current.filter(id => id !== ids)
+          : [...current, ids];
       }
       return { ...prev, [channel]: updated };
     });
@@ -218,7 +255,7 @@ const Broadcast = () => {
                     <h3 className="font-medium mb-2">Message</h3>
                     {ch.channel_type === 'whatsapp' ? (
                       <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-2">
-                        {metaTemplates.whatsapp?.map(t => (
+                        {(metaTemplates.whatsapp || []).map(t => (
                           <div
                             key={t.id}
                             onClick={() => setSelectedTemplate(prev => ({ ...prev, whatsapp: t }))}
@@ -248,21 +285,7 @@ const Broadcast = () => {
                     <CustomerSelector
                       customers={customers}
                       selectedIds={selectedCustomers[ch.channel_type] || []}
-                      onToggle={(idOrList) => {
-                        if (Array.isArray(idOrList)) {
-                          // For bulk selection, we replace the selection with the IDs of the current page
-                          // This is a simple implementation; you can improve.
-                          setSelectedCustomers(prev => ({ ...prev, [ch.channel_type]: idOrList }));
-                        } else {
-                          setSelectedCustomers(prev => {
-                            const current = prev[ch.channel_type] || [];
-                            const updated = current.includes(idOrList)
-                              ? current.filter(id => id !== idOrList)
-                              : [...current, idOrList];
-                            return { ...prev, [ch.channel_type]: updated };
-                          });
-                        }
-                      }}
+                      onToggle={(ids, addMode) => toggleCustomerSelection(ch.channel_type, ids, addMode)}
                       loading={false}
                     />
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../services/api';
@@ -10,53 +10,102 @@ const OrgDashboard = () => {
   const [recentLeads, setRecentLeads] = useState([]);
   const [recentConversations, setRecentConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const customersRes = await api.get('/api/customers');
-      const conversationsRes = await api.get('/api/conversations');
-      const leadsRes = await api.get('/api/leads');
-      const bookingsRes = await api.get('/api/bookings');
-      
+      // Fetch all required data in parallel
+      const [customersRes, conversationsRes, leadsRes, bookingsRes, activityRes] = await Promise.all([
+        api.get('/api/customers?limit=1'), // we only need the total count
+        api.get('/api/conversations'),
+        api.get('/api/leads'),
+        api.get('/api/bookings'),
+        api.get('/api/analytics/activity?period=daily').catch(() => ({ data: { messages: [] } }))
+      ]);
+
+      // Extract counts (handles both array and paginated responses)
+      const getCount = (res) => {
+        if (Array.isArray(res.data)) return res.data.length;
+        if (typeof res.data === 'object' && res.data !== null && 'total' in res.data) return res.data.total;
+        if (Array.isArray(res)) return res.length;
+        return 0;
+      };
+
       setStats({
-        customers: customersRes.data.length,
-        conversations: conversationsRes.data.length,
-        leads: leadsRes.data.length,
-        bookings: bookingsRes.data.length,
+        customers: customersRes.data.total || 0,
+        conversations: getCount(conversationsRes),
+        leads: getCount(leadsRes),
+        bookings: getCount(bookingsRes),
       });
 
-      setRecentLeads(leadsRes.data.slice(0, 5));
-      setRecentConversations(conversationsRes.data.slice(0, 5));
+      // Recent items (first 5)
+      const leadsArray = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data.data || []);
+      const convsArray = Array.isArray(conversationsRes.data) ? conversationsRes.data : (conversationsRes.data.data || []);
+      setRecentLeads(leadsArray.slice(0, 5));
+      setRecentConversations(convsArray.slice(0, 5));
 
-      const activityRes = await api.get('/api/analytics/activity?period=daily');
-      setMessageData(activityRes.data.messages.slice(-7));
-
+      // Lead status breakdown
       const statusCount = {};
-      leadsRes.data.forEach(lead => {
+      leadsArray.forEach(lead => {
         const status = lead.status || 'new';
         statusCount[status] = (statusCount[status] || 0) + 1;
       });
       const statusArray = Object.keys(statusCount).map(key => ({ name: key, value: statusCount[key] }));
       setLeadStatusData(statusArray);
 
+      // Message activity (last 7 days)
+      const messages = activityRes.data.messages || [];
+      setMessageData(messages.slice(-7));
     } catch (err) {
       console.error('Failed to load dashboard data', err);
+      setError('Unable to load dashboard data. Please refresh the page.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-gray-200 h-32 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg">{error}</div>
+        <button onClick={fetchDashboardData} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'];
 
-  if (loading) return <div className="p-6">Loading dashboard...</div>;
-
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <button onClick={fetchDashboardData} className="text-sm text-blue-600 hover:underline">
+          Refresh
+        </button>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -106,15 +155,19 @@ const OrgDashboard = () => {
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Message Activity (Last 7 days)</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={messageData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {messageData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={messageData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-500">No message activity yet</div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow p-4">
@@ -205,7 +258,7 @@ const OrgDashboard = () => {
               <tbody className="divide-y">
                 {recentConversations.map(conv => (
                   <tr key={conv.id}>
-                    <td className="px-4 py-2">{conv.customer_phone}</td>
+                    <td className="px-4 py-2">{conv.customer_phone || '—'}</td>
                     <td className="px-4 py-2">{conv.last_message || '-'}</td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${conv.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>

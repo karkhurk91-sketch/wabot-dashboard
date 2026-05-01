@@ -29,4 +29,15 @@ api.interceptors.response.use(
   }
 );
 
+export const fetchCustomers = (page, search) =>
+  api.get(`/api/customers?page=${page}&search=${search}`);
+
+export const uploadCustomers = (formData) =>
+  api.post(`/api/customers/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+
+export const toggleStatus = (id) =>
+  api.put(`/api/customers/${id}/status`);
+
 export default api;

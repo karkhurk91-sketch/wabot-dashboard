@@ -4,21 +4,40 @@ import api from '../services/api';
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ phone_number: '', name: '', email: '', notes: '' });
+
+  const [mask, setMask] = useState(true);
   const [search, setSearch] = useState('');
+  const [file, setFile] = useState(null);
+
+  const [form, setForm] = useState({
+    country_code: '+91',
+    phone_number: '',
+    name: '',
+    email: '',
+    address: '',
+    pincode: '',
+    profession: '',
+    notes: ''
+  });
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [page, search]);
 
   const fetchCustomers = async () => {
     try {
-      const res = await api.get('/api/customers');
-      setCustomers(res.data);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
+      setLoading(true);
+      const res = await api.get(`/api/customers?page=${page}&search=${search}`);
+      setCustomers(res.data.data || []);
+      setTotal(res.data.total || 0);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -34,98 +53,129 @@ const Customers = () => {
       }
       setShowModal(false);
       setEditing(null);
-      setForm({ phone_number: '', name: '', email: '', notes: '' });
       fetchCustomers();
-    } catch (error) {
-      console.error('Error saving customer:', error);
-      alert('Failed to save customer');
+    } catch (err) {
+      alert('Error saving customer');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Delete this customer? It will be hidden from your list.')) {
-      try {
-        await api.delete(`/api/customers/${id}`);
-        fetchCustomers();
-      } catch (error) {
-        console.error('Error deleting customer:', error);
-        alert('Failed to delete');
-      }
-    }
+    if (!window.confirm('Delete customer?')) return;
+    await api.delete(`/api/customers/${id}`);
+    fetchCustomers();
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied: ' + text);
+  const toggleStatus = async (id) => {
+    await api.put(`/api/customers/${id}/status`);
+    fetchCustomers();
   };
 
-  const filteredCustomers = customers.filter(c =>
-    c.phone_number.includes(search) || (c.name && c.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const handleUpload = async () => {
+    if (!file) return alert("Select file first");
+    const formData = new FormData();
+    formData.append("file", file);
 
-  if (loading) return <div className="p-6">Loading...</div>;
+    await api.post('/api/customers/upload', formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+
+    alert("Uploaded successfully");
+    setFile(null);
+    fetchCustomers();
+  };
+
+  const maskPhone = (phone) => mask ? phone?.slice(0, 3) + "****" + phone?.slice(-2) : phone;
+  const maskEmail = (email) => mask && email ? email.slice(0, 2) + "****@" + email.split("@")[1] : email;
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+
+      {/* HEADER */}
+      <div className="flex flex-wrap justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">Customers</h1>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setForm({ phone_number: '', name: '', email: '', notes: '' });
-            setShowModal(true);
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md"
-        >
-          + Add Customer
+
+        <div className="flex gap-2">
+          <button onClick={() => setMask(!mask)} className="px-3 py-2 border rounded">
+            {mask ? "Unmask" : "Mask"}
+          </button>
+
+          <button
+            onClick={() => {
+              setEditing(null);
+              setForm({
+                country_code: '+91',
+                phone_number: '',
+                name: '',
+                email: '',
+                address: '',
+                pincode: '',
+                profession: '',
+                notes: ''
+              });
+              setShowModal(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            + Add
+          </button>
+        </div>
+      </div>
+
+      {/* SEARCH + UPLOAD */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <input
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-3 py-2 rounded w-64"
+        />
+
+        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <button onClick={handleUpload} className="bg-green-600 text-white px-3 py-2 rounded">
+          Upload
         </button>
       </div>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by phone or name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* TABLE */}
+      <div className="bg-white shadow rounded overflow-x-auto">
         <table className="min-w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-100 text-xs uppercase">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="p-3">Phone</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Profession</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredCustomers.map((c) => (
-              <tr key={c.id}>
-                <td className="px-6 py-4">
-                  {c.phone_number}
-                  <button onClick={() => copyToClipboard(c.phone_number)} className="ml-2 text-gray-400 hover:text-gray-600">
-                    📋
-                  </button>
+
+          <tbody>
+            {customers.map(c => (
+              <tr key={c.id} className="border-t">
+                <td className="p-3">
+                  {c.country_code} {maskPhone(c.phone_number)}
                 </td>
-                <td className="px-6 py-4">{c.name || '-'}</td>
-                <td className="px-6 py-4">{c.email || '-'}</td>
-                <td className="px-6 py-4 space-x-2">
-                  <button
-                    onClick={() => {
-                      setEditing(c);
-                      setForm({ phone_number: c.phone_number, name: c.name || '', email: c.email || '', notes: c.notes || '' });
-                      setShowModal(true);
-                    }}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline">
-                    Delete
-                  </button>
+                <td>{c.name || '-'}</td>
+                <td>{maskEmail(c.email) || '-'}</td>
+                <td>{c.profession || '-'}</td>
+
+                <td>
+                  <span className={`px-2 py-1 rounded text-xs ${c.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
+                    {c.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+
+                <td className="space-x-2">
+                  <button onClick={() => toggleStatus(c.id)} className="text-yellow-600">Toggle</button>
+
+                  <button onClick={() => {
+                    setEditing(c);
+                    setForm(c);
+                    setShowModal(true);
+                  }} className="text-blue-600">Edit</button>
+
+                  <button onClick={() => handleDelete(c.id)} className="text-red-600">Delete</button>
                 </td>
               </tr>
             ))}
@@ -133,43 +183,55 @@ const Customers = () => {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* PAGINATION */}
+      <div className="flex justify-between mt-4">
+        <button disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</button>
+        <span>Page {page}</span>
+        <button disabled={customers.length < 50} onClick={() => setPage(page + 1)}>Next</button>
+      </div>
+
+      {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded w-96">
+            <h2 className="font-bold mb-4">{editing ? 'Edit' : 'Add'} Customer</h2>
+
             <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                placeholder="Phone number (with country code) *"
-                value={form.phone_number}
-                onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-                className="w-full border p-2 mb-2 rounded"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Name (optional)"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border p-2 mb-2 rounded"
-              />
-              <input
-                type="email"
-                placeholder="Email (optional)"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border p-2 mb-2 rounded"
-              />
-              <textarea
-                placeholder="Notes (optional)"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="w-full border p-2 mb-4 rounded"
-              />
+              <input placeholder="Country Code" value={form.country_code}
+                onChange={e => setForm({...form, country_code: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <input placeholder="Phone *" required value={form.phone_number}
+                onChange={e => setForm({...form, phone_number: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <input placeholder="Name" value={form.name}
+                onChange={e => setForm({...form, name: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <input placeholder="Email" value={form.email}
+                onChange={e => setForm({...form, email: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <input placeholder="Profession" value={form.profession}
+                onChange={e => setForm({...form, profession: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <input placeholder="Pincode" value={form.pincode}
+                onChange={e => setForm({...form, pincode: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <textarea placeholder="Address" value={form.address}
+                onChange={e => setForm({...form, address: e.target.value})}
+                className="w-full border p-2 mb-2" />
+
+              <textarea placeholder="Notes" value={form.notes}
+                onChange={e => setForm({...form, notes: e.target.value})}
+                className="w-full border p-2 mb-4" />
+
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
               </div>
             </form>
           </div>

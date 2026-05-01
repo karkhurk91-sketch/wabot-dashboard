@@ -37,7 +37,6 @@ export default function Conversations() {
     return 'Unknown';
   };
 
-  // Status icon helper
   const getStatusIcon = (status) => {
     if (status === 'sent') return <span className="text-gray-400 text-xs">✓</span>;
     if (status === 'delivered') return <span className="text-gray-500 text-xs">✓✓</span>;
@@ -80,7 +79,6 @@ export default function Conversations() {
       const res = await api.get(`/api/conversations/${convId}/messages`);
       setMessages(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(res.data)) {
-
           setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
           return res.data;
         }
@@ -112,6 +110,7 @@ export default function Conversations() {
     try {
       await api.post(`/api/conversations/${selectedConv.id}/send`, {
         text: newMessage,
+        // For rule mode, treat as AI (automated reply) – the backend will route accordingly
         sender_type: replyMode === 'human' ? 'agent' : 'ai',
       });
       setNewMessage('');
@@ -147,13 +146,6 @@ export default function Conversations() {
     await api.delete(`/api/conversations/${selectedConv.id}/tags/${tagId}`);
     await fetchTags(selectedConv.id);
   };
-  const toggleMode = async () => {
-    if (!selectedConv) return;
-    const newMode = replyMode === 'ai' ? 'human' : 'ai';
-    await api.patch(`/api/conversations/${selectedConv.id}/mode?mode=${newMode}`);
-    setReplyMode(newMode);
-    await fetchConversations();
-  };
 
   const filteredConversations = conversations.filter(c => getCustomerDisplay(c).toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -184,8 +176,12 @@ export default function Conversations() {
             <div key={conv.id} onClick={() => selectConversation(conv)} className={`p-3 border-b border-gray-100 cursor-pointer transition ${selectedConv?.id === conv.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : 'hover:bg-gray-50'}`}>
               <div className="flex justify-between items-start">
                 <div className="font-medium text-gray-800 truncate">{getCustomerDisplay(conv)}</div>
-                <div className={`text-xs px-2 py-0.5 rounded-full ${conv.reply_mode === 'ai' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                  {conv.reply_mode === 'ai' ? '🤖 AI' : '👤 Human'}
+                <div className={`text-xs px-2 py-0.5 rounded-full ${
+                  conv.reply_mode === 'ai' ? 'bg-amber-100 text-amber-700' :
+                  conv.reply_mode === 'human' ? 'bg-green-100 text-green-700' :
+                  'bg-purple-100 text-purple-700'
+                }`}>
+                  {conv.reply_mode === 'ai' ? '🤖 AI' : conv.reply_mode === 'human' ? '👤 Human' : '⚙️ Rule'}
                 </div>
               </div>
               <div className="text-sm text-gray-500 truncate mt-1">{conv.last_message || 'No messages'}</div>
@@ -206,17 +202,35 @@ export default function Conversations() {
                 <div className="flex flex-wrap gap-1 mt-1">{tags.map((tag) => (<span key={tag.id} className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">{tag.name}</span>))}</div>
               </div>
               <div className="flex gap-2">
-                <button onClick={toggleMode} className={`px-3 py-1 rounded-full text-sm shadow-sm ${replyMode === 'ai' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                  {replyMode === 'ai' ? '🤖 AI Mode' : '👤 Human Mode'}
-                </button>
-                <button onClick={() => setDrawerOpen(true)} className="p-2 rounded-full hover:bg-gray-100 transition">📝<i className="fas fa-ellipsis-v text-gray-500"></i></button>
+                <div className="flex gap-1 bg-gray-100 p-0.5 rounded-full">
+                  {['ai', 'human', 'rule'].map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={async () => {
+                        if (!selectedConv) return;
+                        await api.patch(`/api/conversations/${selectedConv.id}/mode?mode=${mode}`);
+                        setReplyMode(mode);
+                        await fetchConversations();
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                        replyMode === mode
+                          ? mode === 'ai' ? 'bg-amber-500 text-white' : mode === 'human' ? 'bg-green-500 text-white' : 'bg-purple-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {mode === 'ai' && '🤖 AI'}
+                      {mode === 'human' && '👤 Human'}
+                      {mode === 'rule' && '⚙️ Rule'}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setDrawerOpen(true)} className="p-2 rounded-full hover:bg-gray-100 transition"><i className="fas fa-ellipsis-v text-gray-500"></i></button>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((msg) => {
                 const isOutbound = msg.direction === 'outbound';
-                // Sender label: Customer name/number, AI, or Agent
                 let senderLabel = '';
                 if (!isOutbound) {
                   senderLabel = getCustomerDisplay(selectedConv);
@@ -248,7 +262,11 @@ export default function Conversations() {
                 <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type a message..." className="flex-1 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 <button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"><i className="fas fa-paper-plane"></i> Send</button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">{replyMode === 'ai' ? '🤖 AI mode – customer will receive automated replies' : '👤 Human mode – you are directly talking to the customer'}</p>
+              <p className="text-xs text-gray-400 mt-2">
+                {replyMode === 'ai' && '🤖 AI mode – customer will receive automated replies'}
+                {replyMode === 'human' && '👤 Human mode – you are directly talking to the customer'}
+                {replyMode === 'rule' && '⚙️ Rule mode – predefined rules will reply (no AI cost)'}
+              </p>
             </div>
           </>
         ) : (
