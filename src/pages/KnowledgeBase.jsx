@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const KnowledgeBase = () => {
+  const { userRole } = useAuth();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -60,6 +62,10 @@ const KnowledgeBase = () => {
   };
 
   const handleDelete = async (id) => {
+    if (userRole !== 'org_admin') {
+      alert('Only organization admin can delete documents');
+      return;
+    }
     if (window.confirm('Delete this document?')) {
       try {
         await api.delete(`/api/knowledge/${id}`);
@@ -71,6 +77,10 @@ const KnowledgeBase = () => {
   };
 
   const startEdit = (doc) => {
+    if (userRole !== 'org_admin') {
+      alert('Only organization admin can edit');
+      return;
+    }
     setEditingId(doc.id);
     setEditForm({ title: doc.title || '', description: doc.description || '' });
   };
@@ -95,18 +105,14 @@ const KnowledgeBase = () => {
       const response = await api.get(`/api/knowledge/download/${id}`, {
         responseType: 'blob'
       });
-
-      // Get filename from Content-Disposition header if available
       const contentDisposition = response.headers['content-disposition'];
-      let filename = originalFileName; // fallback
+      let filename = originalFileName;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         if (match && match[1]) {
           filename = match[1].replace(/['"]/g, '');
         }
       }
-
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -127,15 +133,16 @@ const KnowledgeBase = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Knowledge Base</h1>
-        <button
-          onClick={() => setShowUploadForm(!showUploadForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          + Add Document
-        </button>
+        {userRole !== 'viewer' && (
+          <button
+            onClick={() => setShowUploadForm(!showUploadForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            + Add Document
+          </button>
+        )}
       </div>
 
-      {/* Upload Form */}
       {showUploadForm && (
         <div className="bg-white p-4 rounded-lg shadow mb-6 border">
           <h2 className="text-lg font-semibold mb-4">Upload New Document</h2>
@@ -191,7 +198,6 @@ const KnowledgeBase = () => {
         </div>
       )}
 
-      {/* Documents List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
@@ -216,10 +222,9 @@ const KnowledgeBase = () => {
                     />
                   ) : (
                     <button onClick={() => downloadFile(doc.id, doc.file_name)} className="text-blue-600">
-                      {doc.title}
-                    </button> || '-'
+                      {doc.title || '-'}
+                    </button>
                   )}
-
                 </td>
                 <td className="px-6 py-4">
                   {editingId === doc.id ? (
@@ -249,8 +254,12 @@ const KnowledgeBase = () => {
                     </>
                   ) : (
                     <>
-                      <button onClick={() => startEdit(doc)} className="text-blue-600 hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(doc.id)} className="text-red-600 hover:underline">Delete</button>
+                      {userRole === 'org_admin' && (
+                        <>
+                          <button onClick={() => startEdit(doc)} className="text-blue-600 hover:underline">Edit</button>
+                          <button onClick={() => handleDelete(doc.id)} className="text-red-600 hover:underline">Delete</button>
+                        </>
+                      )}
                     </>
                   )}
                 </td>
@@ -261,7 +270,7 @@ const KnowledgeBase = () => {
                 <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                   No documents in knowledge base. Click "Add Document" to upload.
                 </td>
-               </tr>
+              </tr>
             )}
           </tbody>
         </table>

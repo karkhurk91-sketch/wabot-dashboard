@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { campaignApi } from '../services/campaignApi';
+import { useAuth } from '../context/AuthContext';
+
 
 export default function Campaigns() {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ export default function Campaigns() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12); // 12 campaigns per page
   const [showModal, setShowModal] = useState(false);
+  const { userRole } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     product_name: '',
@@ -117,15 +120,17 @@ export default function Campaigns() {
           </h1>
           <p className="text-gray-500 mt-1">Manage all your marketing campaigns</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-md transition"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Campaign
-        </button>
+        {userRole !== 'viewer' && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-md transition"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Campaign
+          </button>
+        )}
       </div>
 
       {/* Search bar */}
@@ -173,24 +178,28 @@ export default function Campaigns() {
                   {new Date(campaign.created_at).toLocaleDateString()}
                 </span>
                 <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/campaigns/${campaign.id}`);
-                    }}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(campaign.id, campaign.name);
-                    }}
-                    className="text-red-500 hover:text-red-700 text-sm font-medium"
-                  >
-                    Delete
-                  </button>
+                  {userRole !== 'viewer' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/campaigns/${campaign.id}`);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {userRole === 'org_admin' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(campaign.id, campaign.name);
+                      }}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

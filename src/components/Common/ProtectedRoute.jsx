@@ -8,8 +8,9 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (requiredRole && user.role !== requiredRole) return <Navigate to="/login" replace />;
-
+  if (requiredRole && user.role !== requiredRole && user.role !== 'super_admin') {
+    return <Navigate to="/login" replace />;
+  }
   return <Layout>{children}</Layout>;
 };
 

@@ -23,7 +23,8 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminAIConfigGlobal from './pages/AdminAIConfigGlobal';
 import AdminPrompts from './pages/AdminPrompts';
 import AdminBlogs from './pages/AdminBlogs';
-import AdminChannels from './pages/AdminChannels';   // <-- Import
+import AdminChannels from './pages/AdminChannels';
+import Organizations from './pages/Organizations';
 
 // Organization pages
 import OrgDashboard from './pages/OrgDashboard';
@@ -38,9 +39,17 @@ import Profile from './pages/Profile';
 import AIChat from './pages/AIChat';
 import Bookings from './pages/Bookings';
 import Calendar from './pages/Calendar';
-import OrganizationChannels from './pages/OrganizationChannels';   // <-- Import
+import OrganizationChannels from './pages/OrganizationChannels';
 import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
+
+// Partner pages
+import AdminPartners from './pages/AdminPartners';
+import PartnerDashboard from './pages/PartnerDashboard';
+import PartnerSignup from './pages/PartnerSignup';
+
+// Team Management
+import TeamManagement from './pages/TeamManagement';
 
 function App() {
   return (
@@ -62,32 +71,40 @@ function App() {
 
           {/* Super admin routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="super_admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/organizations" element={<ProtectedRoute requiredRole="super_admin"><AdminOrganizations /></ProtectedRoute>} />
+          <Route path="/organizations" element={<ProtectedRoute><Organizations /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="super_admin"><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/ai-config-global" element={<ProtectedRoute requiredRole="super_admin"><AdminAIConfigGlobal /></ProtectedRoute>} />
           <Route path="/admin/prompts" element={<ProtectedRoute requiredRole="super_admin"><AdminPrompts /></ProtectedRoute>} />
           <Route path="/admin/ai-test" element={<ProtectedRoute requiredRole="super_admin"><AdminAITest /></ProtectedRoute>} />
           <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="super_admin"><AdminBlogs /></ProtectedRoute>} />
-          <Route path="/admin/channels" element={<ProtectedRoute requiredRole="super_admin"><AdminChannels /></ProtectedRoute>} />   {/* NEW */}
+          <Route path="/admin/channels" element={<ProtectedRoute requiredRole="super_admin"><AdminChannels /></ProtectedRoute>} />
 
-          {/* Organization routes */}
-          <Route path="/dashboard" element={<ProtectedRoute requiredRole="org_admin"><OrgDashboard /></ProtectedRoute>} />
+          {/* Organization routes – now accessible by any authenticated user (agent, viewer, org_admin) */}
+          <Route path="/dashboard" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute requiredRole="org_admin"><Customers /></ProtectedRoute>} />
-          <Route path="/conversations" element={<ProtectedRoute requiredRole="org_admin"><Conversations /></ProtectedRoute>} />
-          <Route path="/leads" element={<ProtectedRoute requiredRole="org_admin"><Leads /></ProtectedRoute>} />
+          <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
+          <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
           <Route path="/broadcast" element={<ProtectedRoute requiredRole="org_admin"><Broadcast /></ProtectedRoute>} />
           <Route path="/ai-config" element={<ProtectedRoute requiredRole="org_admin"><AIConfig /></ProtectedRoute>} />
           <Route path="/knowledge-base" element={<ProtectedRoute requiredRole="org_admin"><KnowledgeBase /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute requiredRole="org_admin"><Analytics /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute requiredRole="org_admin"><Profile /></ProtectedRoute>} />
-          <Route path="/ai-chat" element={<ProtectedRoute requiredRole="org_admin"><AIChat /></ProtectedRoute>} />
-          <Route path="/bookings" element={<ProtectedRoute requiredRole="org_admin"><Bookings /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute requiredRole="org_admin"><Calendar /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+          <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
           <Route path="/campaigns" element={<ProtectedRoute requiredRole="org_admin"><Campaigns /></ProtectedRoute>} />
           <Route path="/campaigns/:id" element={<ProtectedRoute requiredRole="org_admin"><CampaignDetail /></ProtectedRoute>} />
-          <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />   {/* NEW */}
+          <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />
 
-          {/* Default redirect (this may conflict with root, keep only if needed) */}
+          {/* Partner routes */}
+          <Route path="/admin/partners" element={<ProtectedRoute requiredRole="super_admin"><AdminPartners /></ProtectedRoute>} />
+          <Route path="/partner-dashboard" element={<ProtectedRoute requiredRole="partner"><PartnerDashboard /></ProtectedRoute>} />
+          <Route path="/partner-signup" element={<PartnerSignup />} />
+
+          {/* Team Management – only for org_admin */}
+          <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
+
+          {/* Default redirect */}
           <Route path="/" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>

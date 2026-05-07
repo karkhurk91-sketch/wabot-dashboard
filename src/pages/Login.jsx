@@ -16,9 +16,12 @@ const Login = () => {
       const user = await login(email, password); // login should return decoded user
       if (user.role === 'super_admin') {
         navigate('/admin/dashboard');
-      } else {
+      } else if (user.role === 'partner') {
+        navigate('/partner-dashboard');
+      } else if (user.role === 'org_admin' || user.role === 'agent'){
         navigate('/dashboard');
       }
+      else navigate('/');
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');
     }

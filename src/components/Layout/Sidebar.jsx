@@ -3,13 +3,14 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
-  const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const { user, permissions, userRole } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // --- Super Admin items ---
   const adminItems = [
     { path: '/admin/dashboard', name: 'Dashboard', icon: '📊' },
-    { path: '/admin/organizations', name: 'Organizations', icon: '🏢' },
+    { path: '/organizations', name: 'Organizations', icon: '🏢' },
+    { path: '/admin/partners', name: 'Partners', icon: '🤝' },
     { path: '/admin/prompts', name: 'AI Prompts', icon: '🤖' },
     { path: '/admin/ai-test', name: 'AI Agent', icon: '💬' },
     { path: '/admin/analytics', name: 'Global Analytics', icon: '📈' },
@@ -17,34 +18,62 @@ const Sidebar = () => {
     { path: '/admin/channels', name: 'Channels', icon: '🔌' }
   ];
 
-  const orgItems = [
-    { path: '/dashboard', name: 'Dashboard', icon: '📊' },
-    { path: '/customers', name: 'Customers', icon: '👥' },
-    { path: '/campaigns', name: 'Campaigns', icon: '📢' },
-    { path: '/conversations', name: 'Conversations', icon: '💬' },
-    { path: '/leads', name: 'Leads', icon: '🎯' },
-    { path: '/broadcast', name: 'Broadcast', icon: '📢' },
-    { path: '/ai-config', name: 'AI prompt', icon: '🤖' },
-    { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚' },
-    { path: '/analytics', name: 'Analytics', icon: '📈' },
-    { path: '/bookings', name: 'Bookings', icon: '📅' },
-    { path: '/calendar', name: 'Calendar', icon: '📆' },
-    { path: '/channels', name: 'Channels', icon: '🔌' }
+  // --- Partner items ---
+  const partnerItems = [
+    { path: '/partner-dashboard', name: 'Dashboard', icon: '📊' },
+    { path: '/organizations', name: 'Organizations', icon: '🏢' }
   ];
 
-  // Settings sub‑items (common for both roles, but you can customize later)
-  const settingsSubItems = [
+  // --- Organization items (permission‑based) ---
+  const orgItems = [
+    { path: '/dashboard', name: 'Dashboard', icon: '📊', permission: 'view_dashboard' },
+    { path: '/customers', name: 'Customers', icon: '👥', permission: 'manage_customers' },
+    { path: '/campaigns', name: 'Campaigns', icon: '📢', permission: 'manage_campaigns' },
+    { path: '/conversations', name: 'Conversations', icon: '💬', permission: 'manage_conversations' },
+    { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
+    { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' },
+    { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
+    { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚', permission: 'manage_knowledge_base' },
+    { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
+    { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
+    { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
+    { path: '/channels', name: 'Channels', icon: '🔌', permission: 'manage_channels' }
+  ];
+
+  // Settings sub‑items (Team Management only for org_admin)
+  const baseSettingsSubItems = [
     { path: '/profile', name: 'Profile', icon: '👤' },
-    { path: '/team', name: 'Team Members', icon: '👥' },
     { path: '/api-keys', name: 'API Keys', icon: '🔑' },
-    { path: '/billing', name: 'Billing & Plan', icon: '💳' },
     { path: '/integrations', name: 'Integrations', icon: '🔌' },
     { path: '/notifications', name: 'Notifications', icon: '🔔' },
     { path: '/security', name: '2FA & Security', icon: '🛡️' }
   ];
 
-  // Use the role‑specific main items, but settings sub‑items are same for both
-  const mainItems = isSuperAdmin ? adminItems : orgItems;
+  const settingsSubItems = userRole === 'org_admin'
+    ? [{ path: '/team', name: 'Team Members', icon: '👥' }, ...baseSettingsSubItems]
+    : baseSettingsSubItems;
+
+  // Determine which main items to show (with fallback)
+  let mainItems = [];
+  if (userRole === 'super_admin') {
+    mainItems = adminItems;
+  } else if (userRole === 'partner') {
+    mainItems = partnerItems;
+  } else if (userRole === 'org_admin' || userRole === 'agent' || userRole === 'viewer') {
+    if (permissions && permissions.length) {
+      mainItems = orgItems.filter(item => !item.permission || permissions.includes(item.permission));
+    } else {
+      mainItems = orgItems; // fallback show all
+    }
+  } else {
+    // Default fallback: show organization items
+    mainItems = orgItems;
+  }
+
+  // Prevent blank sidebar (always render something)
+  if (mainItems.length === 0 && settingsSubItems.length === 0) {
+    return <div className="w-64 bg-gray-900"></div>;
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex-col overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-800 shadow-lg">
@@ -58,7 +87,6 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex flex-col gap-1 p-4">
-        {/* Main menu items */}
         {mainItems.map((item) => (
           <NavLink
             key={item.path}
@@ -76,46 +104,47 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        {/* Settings section (collapsible) */}
-        <div className="mt-2">
-          <button
-            onClick={() => setSettingsOpen(!settingsOpen)}
-            className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl w-6">⚙️</span>
-              <span>Settings</span>
-            </div>
-            <svg
-              className={`w-4 h-4 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {/* Settings section */}
+        {settingsSubItems.length > 0 && (
+          <div className="mt-2">
+            <button
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Sub‑items */}
-          <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${settingsOpen ? 'max-h-96' : 'max-h-0'}`}>
-            {settingsSubItems.map((sub) => (
-              <NavLink
-                key={sub.path}
-                to={sub.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-green-600 text-white shadow-md'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`
-                }
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">⚙️</span>
+                <span>Settings</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <span className="text-base w-5">{sub.icon}</span>
-                <span>{sub.name}</span>
-              </NavLink>
-            ))}
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${settingsOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {settingsSubItems.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* Bottom help section */}

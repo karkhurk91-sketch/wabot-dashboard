@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const Customers = () => {
+  const { userRole } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +62,10 @@ const Customers = () => {
   };
 
   const handleDelete = async (id) => {
+    if (userRole !== 'org_admin') {
+      alert('Only organization admin can delete customers');
+      return;
+    }
     if (!window.confirm('Delete customer?')) return;
     await api.delete(`/api/customers/${id}`);
     fetchCustomers();
@@ -87,41 +93,40 @@ const Customers = () => {
   const maskPhone = (phone) => mask ? phone?.slice(0, 3) + "****" + phone?.slice(-2) : phone;
   const maskEmail = (email) => mask && email ? email.slice(0, 2) + "****@" + email.split("@")[1] : email;
 
+  if (loading) return <div className="p-6">Loading...</div>;
+
   return (
     <div className="p-6">
-
-      {/* HEADER */}
       <div className="flex flex-wrap justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">Customers</h1>
-
         <div className="flex gap-2">
           <button onClick={() => setMask(!mask)} className="px-3 py-2 border rounded">
             {mask ? "Unmask" : "Mask"}
           </button>
-
-          <button
-            onClick={() => {
-              setEditing(null);
-              setForm({
-                country_code: '+91',
-                phone_number: '',
-                name: '',
-                email: '',
-                address: '',
-                pincode: '',
-                profession: '',
-                notes: ''
-              });
-              setShowModal(true);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            + Add
-          </button>
+          {userRole !== 'viewer' && (
+            <button
+              onClick={() => {
+                setEditing(null);
+                setForm({
+                  country_code: '+91',
+                  phone_number: '',
+                  name: '',
+                  email: '',
+                  address: '',
+                  pincode: '',
+                  profession: '',
+                  notes: ''
+                });
+                setShowModal(true);
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              + Add
+            </button>
+          )}
         </div>
       </div>
 
-      {/* SEARCH + UPLOAD */}
       <div className="flex flex-wrap gap-3 mb-4">
         <input
           placeholder="Search..."
@@ -129,14 +134,16 @@ const Customers = () => {
           onChange={(e) => setSearch(e.target.value)}
           className="border px-3 py-2 rounded w-64"
         />
-
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-        <button onClick={handleUpload} className="bg-green-600 text-white px-3 py-2 rounded">
-          Upload
-        </button>
+        {userRole !== 'viewer' && (
+          <>
+            <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+            <button onClick={handleUpload} className="bg-green-600 text-white px-3 py-2 rounded">
+              Upload
+            </button>
+          </>
+        )}
       </div>
 
-      {/* TABLE */}
       <div className="bg-white shadow rounded overflow-x-auto">
         <table className="min-w-full">
           <thead className="bg-gray-100 text-xs uppercase">
@@ -149,33 +156,30 @@ const Customers = () => {
               <th>Actions</th>
             </tr>
           </thead>
-
           <tbody>
             {customers.map(c => (
               <tr key={c.id} className="border-t">
-                <td className="p-3">
-                  {c.country_code} {maskPhone(c.phone_number)}
-                </td>
+                <td className="p-3">{c.country_code} {maskPhone(c.phone_number)}</td>
                 <td>{c.name || '-'}</td>
                 <td>{maskEmail(c.email) || '-'}</td>
                 <td>{c.profession || '-'}</td>
-
                 <td>
                   <span className={`px-2 py-1 rounded text-xs ${c.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
                     {c.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-
                 <td className="space-x-2">
                   <button onClick={() => toggleStatus(c.id)} className="text-yellow-600">Toggle</button>
-
-                  <button onClick={() => {
-                    setEditing(c);
-                    setForm(c);
-                    setShowModal(true);
-                  }} className="text-blue-600">Edit</button>
-
-                  <button onClick={() => handleDelete(c.id)} className="text-red-600">Delete</button>
+                  {userRole !== 'viewer' && (
+                    <button onClick={() => {
+                      setEditing(c);
+                      setForm(c);
+                      setShowModal(true);
+                    }} className="text-blue-600">Edit</button>
+                  )}
+                  {userRole === 'org_admin' && (
+                    <button onClick={() => handleDelete(c.id)} className="text-red-600">Delete</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -183,52 +187,38 @@ const Customers = () => {
         </table>
       </div>
 
-      {/* PAGINATION */}
       <div className="flex justify-between mt-4">
         <button disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</button>
         <span>Page {page}</span>
         <button disabled={customers.length < 50} onClick={() => setPage(page + 1)}>Next</button>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded w-96">
             <h2 className="font-bold mb-4">{editing ? 'Edit' : 'Add'} Customer</h2>
-
             <form onSubmit={handleSubmit}>
-              <input placeholder="Country Code" value={form.country_code}
-                onChange={e => setForm({...form, country_code: e.target.value})}
-                className="w-full border p-2 mb-2" />
-
               <input placeholder="Phone *" required value={form.phone_number}
                 onChange={e => setForm({...form, phone_number: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <input placeholder="Name" value={form.name}
                 onChange={e => setForm({...form, name: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <input placeholder="Email" value={form.email}
                 onChange={e => setForm({...form, email: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <input placeholder="Profession" value={form.profession}
                 onChange={e => setForm({...form, profession: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <input placeholder="Pincode" value={form.pincode}
                 onChange={e => setForm({...form, pincode: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <textarea placeholder="Address" value={form.address}
                 onChange={e => setForm({...form, address: e.target.value})}
                 className="w-full border p-2 mb-2" />
-
               <textarea placeholder="Notes" value={form.notes}
                 onChange={e => setForm({...form, notes: e.target.value})}
                 className="w-full border p-2 mb-4" />
-
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>

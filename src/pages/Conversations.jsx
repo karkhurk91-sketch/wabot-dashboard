@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Conversations() {
+  const { user, userRole } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedConv, setSelectedConv] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -20,6 +22,10 @@ export default function Conversations() {
   const [activeTab, setActiveTab] = useState('notes');
   const messagesEndRef = useRef(null);
   const pollingIntervalRef = useRef(null);
+  
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [agents, setAgents] = useState([]);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
 
   const formatPhone = (phone) => {
     if (!phone) return '';
@@ -96,6 +102,13 @@ export default function Conversations() {
   const fetchGlobalTags = async () => {
     try { const res = await api.get('/api/conversations/tags'); setGlobalTags(res.data); } catch (err) { console.error(err); }
   };
+  const fetchAgents = async () => {
+    if (userRole !== 'org_admin') return;
+    try {
+      const res = await api.get('/api/conversations/agents');
+      setAgents(res.data);
+    } catch (err) { console.error(err); }
+  };
 
   const selectConversation = async (conv) => {
     if (selectedConv?.id === conv.id) return;
@@ -110,7 +123,6 @@ export default function Conversations() {
     try {
       await api.post(`/api/conversations/${selectedConv.id}/send`, {
         text: newMessage,
-        // For rule mode, treat as AI (automated reply) – the backend will route accordingly
         sender_type: replyMode === 'human' ? 'agent' : 'ai',
       });
       setNewMessage('');
@@ -147,7 +159,39 @@ export default function Conversations() {
     await fetchTags(selectedConv.id);
   };
 
-  const filteredConversations = conversations.filter(c => getCustomerDisplay(c).toLowerCase().includes(searchTerm.toLowerCase()));
+  const assignAgent = async () => {
+    if (!selectedAgentId) return;
+    try {
+      await api.post(`/api/conversations/${selectedConv.id}/assign`, { agent_id: selectedAgentId });
+      setShowAssignModal(false);
+      setSelectedConv(prev => ({ ...prev, assigned_agent_id: selectedAgentId, assigned_agent_name: agents.find(a => a.id === selectedAgentId)?.full_name }));
+      await fetchConversations();
+    } catch (err) {
+      alert('Failed to assign agent');
+    }
+  };
+
+  const unassignAgent = async () => {
+    console.log('Unassign clicked for conversation', selectedConv?.id);
+    if (!selectedConv) {
+      console.warn('No conversation selected');
+      return;
+    }
+    if (window.confirm('Unassign this conversation?')) {
+      try {
+        await api.post(`/api/conversations/${selectedConv.id}/unassign`);
+        setSelectedConv(prev => ({ ...prev, assigned_agent_id: null, assigned_agent_name: 'Unassigned' }));
+        await fetchConversations();
+      } catch (err) {
+        console.error('Unassign error:', err);
+        alert('Failed to unassign');
+      }
+    }
+  };
+
+  const filteredConversations = conversations.filter(c =>
+    getCustomerDisplay(c).toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     if (newTagName.length > 0) {
@@ -185,7 +229,9 @@ export default function Conversations() {
                 </div>
               </div>
               <div className="text-sm text-gray-500 truncate mt-1">{conv.last_message || 'No messages'}</div>
-              {conv.unread_count > 0 && <span className="inline-block bg-indigo-500 text-white text-xs rounded-full px-2 mt-1">{conv.unread_count}</span>}
+              {conv.assigned_agent_name && conv.assigned_agent_name !== 'Unassigned' && (
+                <div className="text-xs text-gray-400 mt-1">👤 Assigned to: {conv.assigned_agent_name}</div>
+              )}
             </div>
           ))}
           {filteredConversations.length === 0 && <div className="text-center text-gray-400 p-4">No conversations found</div>}
@@ -199,31 +245,53 @@ export default function Conversations() {
             <div className="bg-white bg-opacity-95 backdrop-blur-sm border-b px-6 py-3 flex justify-between items-center shadow-sm">
               <div>
                 <h3 className="font-semibold text-lg text-gray-800">{getCustomerDisplay(selectedConv)}</h3>
-                <div className="flex flex-wrap gap-1 mt-1">{tags.map((tag) => (<span key={tag.id} className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">{tag.name}</span>))}</div>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex gap-1 bg-gray-100 p-0.5 rounded-full">
-                  {['ai', 'human', 'rule'].map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={async () => {
-                        if (!selectedConv) return;
-                        await api.patch(`/api/conversations/${selectedConv.id}/mode?mode=${mode}`);
-                        setReplyMode(mode);
-                        await fetchConversations();
-                      }}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                        replyMode === mode
-                          ? mode === 'ai' ? 'bg-amber-500 text-white' : mode === 'human' ? 'bg-green-500 text-white' : 'bg-purple-500 text-white'
-                          : 'text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {mode === 'ai' && '🤖 AI'}
-                      {mode === 'human' && '👤 Human'}
-                      {mode === 'rule' && '⚙️ Rule'}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tags.map((tag) => (<span key={tag.id} className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">{tag.name}</span>))}
                 </div>
+                {selectedConv.assigned_agent_name && selectedConv.assigned_agent_name !== 'Unassigned' && (
+                  <div className="text-xs text-gray-500 mt-1">👤 Assigned to: {selectedConv.assigned_agent_name}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {userRole === 'org_admin' && (
+                  <div className="flex gap-1 bg-gray-100 p-0.5 rounded-full">
+                    {['ai', 'human', 'rule'].map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={async () => {
+                          if (!selectedConv) return;
+                          await api.patch(`/api/conversations/${selectedConv.id}/mode?mode=${mode}`);
+                          setReplyMode(mode);
+                          await fetchConversations();
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                          replyMode === mode
+                            ? mode === 'ai' ? 'bg-amber-500 text-white' : mode === 'human' ? 'bg-green-500 text-white' : 'bg-purple-500 text-white'
+                            : 'text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {mode === 'ai' && '🤖 AI'}
+                        {mode === 'human' && '👤 Human'}
+                        {mode === 'rule' && '⚙️ Rule'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {userRole === 'org_admin' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { fetchAgents(); setShowAssignModal(true); }}
+                      className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full hover:bg-indigo-200"
+                    >
+                      Transfer
+                    </button>
+                    {selectedConv.assigned_agent_id && (
+                      <button onClick={unassignAgent} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200">
+                        Unassign
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button onClick={() => setDrawerOpen(true)} className="p-2 rounded-full hover:bg-gray-100 transition"><i className="fas fa-ellipsis-v text-gray-500"></i></button>
               </div>
             </div>
@@ -259,8 +327,22 @@ export default function Conversations() {
 
             <div className="bg-white p-4 border-t border-gray-200">
               <div className="flex gap-2">
-                <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type a message..." className="flex-1 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-                <button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"><i className="fas fa-paper-plane"></i> Send</button>
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="Type a message..."
+                  className="flex-1 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  disabled={userRole === 'viewer'}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={sending || !newMessage.trim() || userRole === 'viewer'}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  <i className="fas fa-paper-plane"></i> Send
+                </button>
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 {replyMode === 'ai' && '🤖 AI mode – customer will receive automated replies'}
@@ -270,7 +352,12 @@ export default function Conversations() {
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-full bg-white bg-opacity-80"><div className="text-center text-gray-400"><i className="fas fa-comments text-6xl mb-3 opacity-30"></i><p>Select a conversation to start chatting</p></div></div>
+          <div className="flex items-center justify-center h-full bg-white bg-opacity-80">
+            <div className="text-center text-gray-400">
+              <i className="fas fa-comments text-6xl mb-3 opacity-30"></i>
+              <p>Select a conversation to start chatting</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -326,6 +413,29 @@ export default function Conversations() {
                   }} className="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">Add Tag</button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-xl font-bold mb-4">Transfer to Agent</h3>
+            <select
+              className="w-full border rounded p-2 mb-4"
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+            >
+              <option value="">Select an agent</option>
+              {agents.map(agent => (
+                <option key={agent.id} value={agent.id}>{agent.full_name}</option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+              <button onClick={assignAgent} className="px-4 py-2 bg-indigo-600 text-white rounded">Assign</button>
             </div>
           </div>
         </div>
