@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import EmojiPicker from 'emoji-picker-react';
 
 export default function Conversations() {
   const { user, userRole } = useAuth();
@@ -26,6 +27,13 @@ export default function Conversations() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [agents, setAgents] = useState([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
+
+  // New state for WhatsApp-like features
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const docInputRef = useRef(null);
 
   const formatPhone = (phone) => {
     if (!phone) return '';
@@ -117,6 +125,7 @@ export default function Conversations() {
     setMessages([]);
   };
 
+  // Send text message (existing)
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConv || sending) return;
     setSending(true);
@@ -132,6 +141,46 @@ export default function Conversations() {
     } catch (err) { console.error(err); alert('Failed to send message'); } finally { setSending(false); }
   };
 
+  // Send media (image/video/document) – new feature
+  const sendMedia = async (file, type) => {
+    if (!selectedConv || uploading) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('caption', newMessage);
+    try {
+      await api.post(`/api/conversations/${selectedConv.id}/send-media`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setNewMessage('');
+      await fetchMessages(selectedConv.id);
+      await fetchConversations();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send media');
+    } finally {
+      setUploading(false);
+      setShowAttachmentMenu(false);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) sendMedia(file, 'image');
+  };
+
+  const handleDocSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) sendMedia(file, 'document');
+  };
+
+  // Emoji picker
+  const onEmojiClick = (emojiData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  // Existing functions (notes, tags, assign, unassign, etc.)
   const addNote = async () => {
     if (!newNote.trim() || !selectedConv) return;
     try {
@@ -158,7 +207,6 @@ export default function Conversations() {
     await api.delete(`/api/conversations/${selectedConv.id}/tags/${tagId}`);
     await fetchTags(selectedConv.id);
   };
-
   const assignAgent = async () => {
     if (!selectedAgentId) return;
     try {
@@ -166,26 +214,16 @@ export default function Conversations() {
       setShowAssignModal(false);
       setSelectedConv(prev => ({ ...prev, assigned_agent_id: selectedAgentId, assigned_agent_name: agents.find(a => a.id === selectedAgentId)?.full_name }));
       await fetchConversations();
-    } catch (err) {
-      alert('Failed to assign agent');
-    }
+    } catch (err) { alert('Failed to assign agent'); }
   };
-
   const unassignAgent = async () => {
-    console.log('Unassign clicked for conversation', selectedConv?.id);
-    if (!selectedConv) {
-      console.warn('No conversation selected');
-      return;
-    }
+    if (!selectedConv) return;
     if (window.confirm('Unassign this conversation?')) {
       try {
         await api.post(`/api/conversations/${selectedConv.id}/unassign`);
         setSelectedConv(prev => ({ ...prev, assigned_agent_id: null, assigned_agent_name: 'Unassigned' }));
         await fetchConversations();
-      } catch (err) {
-        console.error('Unassign error:', err);
-        alert('Failed to unassign');
-      }
+      } catch (err) { alert('Failed to unassign'); }
     }
   };
 
@@ -205,33 +243,60 @@ export default function Conversations() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* LEFT: Conversation List */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-md z-10">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Conversations</h2>
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      {/* LEFT: Conversation List - WhatsApp style with avatars and last message */}
+      <div className="w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 shadow-md z-10 h-full">
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-xl font-bold text-gray-800">Chats</h2>
           <div className="relative mt-2">
             <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-            <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.map((conv) => (
-            <div key={conv.id} onClick={() => selectConversation(conv)} className={`p-3 border-b border-gray-100 cursor-pointer transition ${selectedConv?.id === conv.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : 'hover:bg-gray-50'}`}>
-              <div className="flex justify-between items-start">
-                <div className="font-medium text-gray-800 truncate">{getCustomerDisplay(conv)}</div>
-                <div className={`text-xs px-2 py-0.5 rounded-full ${
-                  conv.reply_mode === 'ai' ? 'bg-amber-100 text-amber-700' :
-                  conv.reply_mode === 'human' ? 'bg-green-100 text-green-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
-                  {conv.reply_mode === 'ai' ? '🤖 AI' : conv.reply_mode === 'human' ? '👤 Human' : '⚙️ Rule'}
+            <div
+              key={conv.id}
+              onClick={() => selectConversation(conv)}
+              className={`flex items-center px-3 py-3 cursor-pointer hover:bg-gray-50 transition ${
+                selectedConv?.id === conv.id ? 'bg-gray-100' : ''
+              }`}
+            >
+              {/* Avatar */}
+              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
+                {getCustomerDisplay(conv).charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-gray-800 truncate">{getCustomerDisplay(conv)}</span>
+                  <span className="text-xs text-gray-400 ml-2">
+                    {conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-0.5">
+                  <p className="text-sm text-gray-500 truncate">{conv.last_message || 'No messages'}</p>
+                  {conv.unread_count > 0 && <span className="bg-green-500 text-white text-xs rounded-full px-2 py-0.5 ml-2">{conv.unread_count}</span>}
+                </div>
+                {/* Preserve original badges: mode and assigned agent */}
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    conv.reply_mode === 'ai' ? 'bg-amber-100 text-amber-700' :
+                    conv.reply_mode === 'human' ? 'bg-green-100 text-green-700' :
+                    'bg-purple-100 text-purple-700'
+                  }`}>
+                    {conv.reply_mode === 'ai' ? '🤖 AI' : conv.reply_mode === 'human' ? '👤 Human' : '⚙️ Rule'}
+                  </span>
+                  {conv.assigned_agent_name && conv.assigned_agent_name !== 'Unassigned' && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">👤 {conv.assigned_agent_name}</span>
+                  )}
                 </div>
               </div>
-              <div className="text-sm text-gray-500 truncate mt-1">{conv.last_message || 'No messages'}</div>
-              {conv.assigned_agent_name && conv.assigned_agent_name !== 'Unassigned' && (
-                <div className="text-xs text-gray-400 mt-1">👤 Assigned to: {conv.assigned_agent_name}</div>
-              )}
             </div>
           ))}
           {filteredConversations.length === 0 && <div className="text-center text-gray-400 p-4">No conversations found</div>}
@@ -239,10 +304,11 @@ export default function Conversations() {
       </div>
 
       {/* CENTER: Chat Window */}
-      <div className="flex-1 flex flex-col bg-cover bg-center" style={{ backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')" }}>
+      <div className="flex-1 flex flex-col bg-cover bg-center h-full overflow-hidden" style={{ backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')" }}>
         {selectedConv ? (
           <>
-            <div className="bg-white bg-opacity-95 backdrop-blur-sm border-b px-6 py-3 flex justify-between items-center shadow-sm">
+            {/* Fixed Header - unchanged except layout */}
+            <div className="bg-white bg-opacity-95 backdrop-blur-sm border-b px-6 py-3 flex justify-between items-center shadow-sm flex-shrink-0">
               <div>
                 <h3 className="font-semibold text-lg text-gray-800">{getCustomerDisplay(selectedConv)}</h3>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -279,23 +345,15 @@ export default function Conversations() {
                 )}
                 {userRole === 'org_admin' && (
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => { fetchAgents(); setShowAssignModal(true); }}
-                      className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full hover:bg-indigo-200"
-                    >
-                      Transfer
-                    </button>
-                    {selectedConv.assigned_agent_id && (
-                      <button onClick={unassignAgent} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200">
-                        Unassign
-                      </button>
-                    )}
+                    <button onClick={() => { fetchAgents(); setShowAssignModal(true); }} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full hover:bg-indigo-200">Transfer</button>
+                    {selectedConv.assigned_agent_id && <button onClick={unassignAgent} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200">Unassign</button>}
                   </div>
                 )}
                 <button onClick={() => setDrawerOpen(true)} className="p-2 rounded-full hover:bg-gray-100 transition"><i className="fas fa-ellipsis-v text-gray-500"></i></button>
               </div>
             </div>
 
+            {/* Scrollable Messages - enhanced with media support and status icons */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((msg) => {
                 const isOutbound = msg.direction === 'outbound';
@@ -305,17 +363,29 @@ export default function Conversations() {
                 } else {
                   senderLabel = msg.sender_type === 'agent' ? 'Agent' : 'AI';
                 }
-                const bubbleClass = isOutbound ? 'bg-indigo-500 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200';
+                const bubbleClass = isOutbound
+                  ? 'bg-green-100 text-gray-800 rounded-br-none'
+                  : 'bg-white text-gray-800 rounded-bl-none border border-gray-200';
                 const alignClass = isOutbound ? 'justify-end' : 'justify-start';
+                const isMedia = msg.message_type !== 'text';
                 return (
                   <div key={msg.id} className={`flex ${alignClass}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${bubbleClass}`}>
+                    <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg shadow-sm ${bubbleClass}`}>
                       <div className="text-xs opacity-70 mb-1 flex justify-between items-center">
                         <span>{senderLabel}</span>
                         {isOutbound && getStatusIcon(msg.status)}
                       </div>
-                      <div className="break-words">{msg.content}</div>
-                      <div className={`text-xs mt-1 ${isOutbound ? 'text-indigo-200' : 'text-gray-400'}`}>
+                      {isMedia ? (
+                        <div>
+                          {msg.message_type === 'image' && <img src={msg.media_url} alt="media" className="max-w-full rounded" />}
+                          {msg.message_type === 'video' && <video controls src={msg.media_url} className="max-w-full rounded" />}
+                          {msg.message_type === 'document' && <a href={msg.media_url} target="_blank" rel="noreferrer" className="text-blue-500 underline">📄 {msg.content || 'Document'}</a>}
+                          {msg.content && <div className="text-sm mt-1 break-words">{msg.content}</div>}
+                        </div>
+                      ) : (
+                        <div className="break-words">{msg.content}</div>
+                      )}
+                      <div className={`text-xs mt-1 ${isOutbound ? 'text-gray-500' : 'text-gray-400'}`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -325,30 +395,78 @@ export default function Conversations() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="bg-white p-4 border-t border-gray-200">
-              <div className="flex gap-2">
+            {/* Fixed Input Area - WhatsApp style with emoji & attachments */}
+            <div className="bg-white p-3 border-t border-gray-200 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                {/* Attachment button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                    className="p-2 rounded-full text-gray-600 hover:bg-gray-100"
+                    disabled={userRole === 'viewer'}
+                  >
+                    <i className="fas fa-paperclip text-xl"></i>
+                  </button>
+                  {showAttachmentMenu && (
+                    <div className="absolute bottom-12 left-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+                      >
+                        <i className="fas fa-image mr-2"></i> Photo/Video
+                      </button>
+                      <button
+                        onClick={() => docInputRef.current?.click()}
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+                      >
+                        <i className="fas fa-file-alt mr-2"></i> Document
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {/* Emoji button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="p-2 rounded-full text-gray-600 hover:bg-gray-100"
+                    disabled={userRole === 'viewer'}
+                  >
+                    <i className="far fa-smile-wink text-xl"></i>
+                  </button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-12 left-0 z-20">
+                      <EmojiPicker onEmojiClick={onEmojiClick} />
+                    </div>
+                  )}
+                </div>
+                {/* Text input */}
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Type a message..."
-                  className="flex-1 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  placeholder="Type a message"
+                  className="flex-1 bg-gray-100 border-none rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                   disabled={userRole === 'viewer'}
                 />
+                {/* Send button */}
                 <button
                   onClick={sendMessage}
-                  disabled={sending || !newMessage.trim() || userRole === 'viewer'}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                  disabled={sending || (!newMessage.trim() && !uploading) || userRole === 'viewer'}
+                  className="bg-green-600 text-white p-2 rounded-full hover:bg-green-700 disabled:opacity-50"
                 >
-                  <i className="fas fa-paper-plane"></i> Send
+                  <i className="fas fa-paper-plane"></i>
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">
+              {/* Mode indicator text (preserved) */}
+              <p className="text-xs text-gray-400 mt-2 ml-2">
                 {replyMode === 'ai' && '🤖 AI mode – customer will receive automated replies'}
                 {replyMode === 'human' && '👤 Human mode – you are directly talking to the customer'}
                 {replyMode === 'rule' && '⚙️ Rule mode – predefined rules will reply (no AI cost)'}
               </p>
+              {/* Hidden file inputs */}
+              <input type="file" ref={fileInputRef} accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
+              <input type="file" ref={docInputRef} accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleDocSelect} className="hidden" />
             </div>
           </>
         ) : (
@@ -361,7 +479,7 @@ export default function Conversations() {
         )}
       </div>
 
-      {/* RIGHT DRAWER - Notes & Tags */}
+      {/* RIGHT DRAWER - Notes & Tags (unchanged) */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setDrawerOpen(false)}></div>
@@ -418,20 +536,14 @@ export default function Conversations() {
         </div>
       )}
 
-      {/* Transfer Modal */}
+      {/* Transfer Modal (unchanged) */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-xl font-bold mb-4">Transfer to Agent</h3>
-            <select
-              className="w-full border rounded p-2 mb-4"
-              value={selectedAgentId}
-              onChange={(e) => setSelectedAgentId(e.target.value)}
-            >
+            <select className="w-full border rounded p-2 mb-4" value={selectedAgentId} onChange={(e) => setSelectedAgentId(e.target.value)}>
               <option value="">Select an agent</option>
-              {agents.map(agent => (
-                <option key={agent.id} value={agent.id}>{agent.full_name}</option>
-              ))}
+              {agents.map(agent => (<option key={agent.id} value={agent.id}>{agent.full_name}</option>))}
             </select>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 border rounded">Cancel</button>
