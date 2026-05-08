@@ -40,4 +40,13 @@ export const uploadCustomers = (formData) =>
 export const toggleStatus = (id) =>
   api.put(`/api/customers/${id}/status`);
 
+export const sendConversationMedia = (convId, formData, onUploadProgress) =>
+  api.post(`/api/conversations/${convId}/send-media`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress,
+  });
+
+export const fetchConversationMessages = (convId, limit = 50, offset = 0) =>
+  api.get(`/api/conversations/${convId}/messages?limit=${limit}&offset=${offset}`);
+
 export default api;
