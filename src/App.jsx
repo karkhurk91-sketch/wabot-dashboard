@@ -65,7 +65,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/super-admin-signup" element={<SuperAdminSignup />} />
-          <Route path="/signup" element={<OrganizationSignup />} />
+          <Route path="/organization-signup" element={<OrganizationSignup />} />
           <Route path="/blogs" element={<BlogList />} />
           <Route path="/blogs/:slug" element={<BlogDetail />} />
 
@@ -103,9 +103,6 @@ function App() {
 
           {/* Team Management – only for org_admin */}
           <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
-
-          {/* Default redirect */}
-          <Route path="/" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -7,6 +7,8 @@ const Dashboard = () => {
     totalConversations: 0,
     totalLeads: 0,
     totalMessages: 0,
+    marketing: 0,
+    utility: 0,
   });
 
   useEffect(() => {
