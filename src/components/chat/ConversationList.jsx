@@ -11,7 +11,7 @@ const ConversationList = ({ conversations, selectedConversation, onSelect, searc
   }, [conversations, searchTerm]);
 
   return (
-    <aside className="hidden lg:flex lg:w-96 xl:w-[26rem] flex-col border-r border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700">
+    <aside className="flex h-full min-h-0 w-full flex-col border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:w-96 xl:w-[26rem] lg:shrink-0 lg:border-r">
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Conversations</h2>
         <div className="mt-3 relative">
@@ -27,6 +27,13 @@ const ConversationList = ({ conversations, selectedConversation, onSelect, searc
         {filtered.length === 0 && <div className="p-4 text-sm text-slate-500 dark:text-slate-400">No conversations found.</div>}
         {filtered.map((conv) => {
           const isActive = selectedConversation?.id === conv.id;
+          const last = conv.last_message;
+          const lastPreview =
+            typeof last === 'string'
+              ? last
+              : last && typeof last === 'object'
+                ? last.text ?? last.content ?? 'Message'
+                : 'No messages yet';
           return (
             <button
               key={conv.id}
@@ -36,10 +43,12 @@ const ConversationList = ({ conversations, selectedConversation, onSelect, searc
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-white">{(conv.customer_name || conv.customer_phone_number || 'U')[0].toUpperCase()}</span>
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-white">
+                    {(String(conv.customer_name || conv.customer_phone_number || 'U').trim().charAt(0) || 'U').toUpperCase()}
+                  </span>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{conv.customer_name || formatPhone(conv.customer_phone_number) || 'Unknown'}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">{conv.last_message || 'No messages yet'}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">{lastPreview}</p>
                   </div>
                 </div>
                 <span className="text-xs text-slate-400 dark:text-slate-500">{conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>

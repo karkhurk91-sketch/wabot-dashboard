@@ -3,6 +3,29 @@ import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../services/api';
 
+/** API returns last_message as either a string or { text, content, ... } — never render raw objects in JSX. */
+function formatLastMessagePreview(lastMessage) {
+  if (lastMessage == null || lastMessage === '') return '—';
+  if (typeof lastMessage === 'string') return lastMessage;
+  if (typeof lastMessage === 'object') {
+    return lastMessage.text ?? lastMessage.content ?? '—';
+  }
+  return String(lastMessage);
+}
+
+function conversationCustomerLabel(conv) {
+  const name = conv.customer_name?.trim();
+  if (name) return name;
+  return conv.customer_phone_number ?? conv.customer_phone ?? '—';
+}
+
+/** Avoid rendering objects in table cells */
+function formatScalar(value) {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
 const OrgDashboard = () => {
   const [stats, setStats] = useState({ customers: 0, conversations: 0, leads: 0, bookings: 0 });
   const [messageData, setMessageData] = useState([]);
@@ -16,48 +39,78 @@ const OrgDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all required data in parallel
-      const [customersRes, conversationsRes, leadsRes, bookingsRes, activityRes] = await Promise.all([
-        api.get('/api/customers?limit=1'), // we only need the total count
+      const settled = await Promise.allSettled([
+        api.get('/api/customers?page=1&limit=1'),
         api.get('/api/conversations'),
         api.get('/api/leads'),
         api.get('/api/bookings'),
-        api.get('/api/analytics/activity?period=daily').catch(() => ({ data: { messages: [] } }))
+        api.get('/api/analytics/activity?period=daily'),
       ]);
 
-      // Extract counts (handles both array and paginated responses)
-      const getCount = (res) => {
-        if (Array.isArray(res.data)) return res.data.length;
-        if (typeof res.data === 'object' && res.data !== null && 'total' in res.data) return res.data.total;
-        if (Array.isArray(res)) return res.length;
+      const res = (i) => (settled[i].status === 'fulfilled' ? settled[i].value : null);
+
+      if (!settled.some((s) => s.status === 'fulfilled')) {
+        setError('Unable to load dashboard data. Please refresh the page.');
+        setStats({ customers: 0, conversations: 0, leads: 0, bookings: 0 });
+        setRecentLeads([]);
+        setRecentConversations([]);
+        setLeadStatusData([]);
+        setMessageData([]);
+        return;
+      }
+
+      const customersRes = res(0);
+      const conversationsRes = res(1);
+      const leadsRes = res(2);
+      const bookingsRes = res(3);
+      const activityRes = res(4) || { data: { messages: [] } };
+
+      const getCount = (r) => {
+        if (!r) return 0;
+        const d = r?.data;
+        if (Array.isArray(d)) return d.length;
+        if (d && typeof d === 'object' && 'total' in d) return Number(d.total) || 0;
         return 0;
       };
 
+      const customerPayload = customersRes?.data;
+      const customerCount =
+        customerPayload && typeof customerPayload === 'object' && !Array.isArray(customerPayload) && 'total' in customerPayload
+          ? Number(customerPayload.total) || 0
+          : Array.isArray(customerPayload)
+            ? customerPayload.length
+            : 0;
+
+      const asArray = (r) => {
+        if (!r) return [];
+        const d = r?.data;
+        if (Array.isArray(d)) return d;
+        if (d && typeof d === 'object' && Array.isArray(d.data)) return d.data;
+        return [];
+      };
+
       setStats({
-        customers: customersRes.data.total || 0,
+        customers: customerCount,
         conversations: getCount(conversationsRes),
         leads: getCount(leadsRes),
         bookings: getCount(bookingsRes),
       });
 
-      // Recent items (first 5)
-      const leadsArray = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data.data || []);
-      const convsArray = Array.isArray(conversationsRes.data) ? conversationsRes.data : (conversationsRes.data.data || []);
+      const leadsArray = asArray(leadsRes);
+      const convsArray = asArray(conversationsRes);
       setRecentLeads(leadsArray.slice(0, 5));
       setRecentConversations(convsArray.slice(0, 5));
 
-      // Lead status breakdown
       const statusCount = {};
-      leadsArray.forEach(lead => {
-        const status = lead.status || 'new';
+      leadsArray.forEach((lead) => {
+        const status = formatScalar(lead.status) || 'new';
         statusCount[status] = (statusCount[status] || 0) + 1;
       });
-      const statusArray = Object.keys(statusCount).map(key => ({ name: key, value: statusCount[key] }));
+      const statusArray = Object.keys(statusCount).map((key) => ({ name: key, value: statusCount[key] }));
       setLeadStatusData(statusArray);
 
-      // Message activity (last 7 days)
-      const messages = activityRes.data.messages || [];
-      setMessageData(messages.slice(-7));
+      const messages = activityRes?.data?.messages || [];
+      setMessageData(Array.isArray(messages) ? messages.slice(-7) : []);
     } catch (err) {
       console.error('Failed to load dashboard data', err);
       setError('Unable to load dashboard data. Please refresh the page.');
@@ -183,7 +236,9 @@ const OrgDashboard = () => {
                   outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${typeof percent === 'number' ? (percent * 100).toFixed(0) : 0}%`
+                  }
                 >
                   {leadStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -215,10 +270,10 @@ const OrgDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {recentLeads.map(lead => (
-                  <tr key={lead.id}>
-                    <td className="px-4 py-2">{lead.customer_phone}</td>
-                    <td className="px-4 py-2">{lead.interest || '-'}</td>
+                {recentLeads.map((lead, idx) => (
+                  <tr key={lead.id ?? `lead-${idx}`}>
+                    <td className="px-4 py-2">{formatScalar(lead.customer_phone)}</td>
+                    <td className="px-4 py-2">{formatScalar(lead.interest)}</td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
                         lead.status === 'converted' ? 'bg-green-100 text-green-800' :
@@ -226,7 +281,7 @@ const OrgDashboard = () => {
                         lead.status === 'lost' ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {lead.status || 'new'}
+                        {formatScalar(lead.status) || 'new'}
                       </span>
                     </td>
                   </tr>
@@ -256,13 +311,13 @@ const OrgDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {recentConversations.map(conv => (
-                  <tr key={conv.id}>
-                    <td className="px-4 py-2">{conv.customer_phone || '—'}</td>
-                    <td className="px-4 py-2">{conv.last_message || '-'}</td>
+                {recentConversations.map((conv, idx) => (
+                  <tr key={conv.id ?? `conv-${idx}`}>
+                    <td className="px-4 py-2">{conversationCustomerLabel(conv)}</td>
+                    <td className="px-4 py-2">{formatLastMessagePreview(conv.last_message)}</td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${conv.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {conv.status || 'open'}
+                        {formatScalar(conv.status) || 'open'}
                       </span>
                     </td>
                   </tr>

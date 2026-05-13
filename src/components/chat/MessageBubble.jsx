@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { formatFileSize, getMediaLabel, getStatusIcon, isMediaMessage } from '../../utils/chatUtils';
 
 const MessageBubble = ({ msg, isOutbound }) => {
+  const bodyText = msg.text ?? msg.content ?? '';
   const bubbleClass = isOutbound
     ? 'bg-emerald-50 text-slate-900 dark:bg-emerald-900/20 dark:text-white'
     : 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100';
@@ -24,10 +25,10 @@ const MessageBubble = ({ msg, isOutbound }) => {
                 <span className="text-xs text-slate-500 dark:text-slate-400">{msg.media_file_size ? formatFileSize(msg.media_file_size) : ''}</span>
               </a>
             )}
-            {msg.content && <p className="break-words text-sm leading-6 text-slate-800 dark:text-slate-100">{msg.content}</p>}
+            {bodyText && <p className="break-words text-sm leading-6 text-slate-800 dark:text-slate-100">{bodyText}</p>}
           </div>
         ) : (
-          <p className="break-words text-sm leading-6 text-slate-900 dark:text-slate-100">{msg.content}</p>
+          <p className="break-words text-sm leading-6 text-slate-900 dark:text-slate-100">{bodyText}</p>
         )}
         <div className="mt-2 text-right text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
       </div>
