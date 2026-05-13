@@ -13,7 +13,7 @@ const ChatHeader = React.lazy(() => import('./ChatHeader'));
 const ChatWindow = React.lazy(() => import('./ChatWindow'));
 
 const ChatShell = () => {
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
   const { state, dispatch, darkMode } = useChat();
   const {
     conversations,
@@ -48,6 +48,17 @@ const ChatShell = () => {
     loadConversations();
   }, [loadConversations]);
 
+  const handleSelectConversation = useCallback(async (conversation) => {
+    setHasMoreMessages(true);
+    await selectConversation(conversation);
+  }, [selectConversation]);
+
+  useEffect(() => {
+    if (!selectedConversation && conversations.length > 0) {
+      handleSelectConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation, handleSelectConversation]);
+
   useEffect(() => {
     if (!selectedConversation) return;
     (async () => {
@@ -55,11 +66,6 @@ const ChatShell = () => {
       setHasMoreMessages(count === 50);
     })();
   }, [selectedConversation, loadMessages]);
-
-  const handleSelectConversation = useCallback(async (conversation) => {
-    setHasMoreMessages(true);
-    await selectConversation(conversation);
-  }, [selectConversation]);
 
   const handleScroll = useCallback(async (event) => {
     if (event.target.scrollTop > 120 || !selectedConversation || messagesLoading || !hasMoreMessages) return;
@@ -156,8 +162,8 @@ const ChatShell = () => {
               darkMode={darkMode.darkMode}
             />
             <ChatWindow
+              conversation={selectedConversation}
               messages={messages}
-              selectedConversation={selectedConversation}
               loading={loading}
               messagesLoading={messagesLoading}
               typing={typing}
@@ -179,6 +185,8 @@ const ChatShell = () => {
             inputRef={inputRef}
             sending={sending}
             uploading={mediaUpload.uploading}
+            organizationId={user?.org_id}
+            conversationId={selectedConversation?.id}
           />
         </div>
       </div>

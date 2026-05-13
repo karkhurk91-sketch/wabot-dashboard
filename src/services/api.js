@@ -41,7 +41,7 @@ export const toggleStatus = (id) =>
   api.put(`/api/customers/${id}/status`);
 
 export const sendConversationMedia = (convId, formData, onUploadProgress) =>
-  api.post(`/api/conversations/${convId}/send-media`, formData, {
+  api.post(`/api/conversations/${convId}/media`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress,
   });

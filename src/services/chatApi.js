@@ -6,13 +6,13 @@ export const fetchConversationMessages = (convId, limit = 50, offset = 0) =>
   api.get(`/api/conversations/${convId}/messages?limit=${limit}&offset=${offset}`);
 
 export const sendTextMessage = (convId, text, senderType) =>
-  api.post(`/api/conversations/${convId}/send`, {
+  api.post(`/api/conversations/${convId}/messages`, {
     text,
     sender_type: senderType,
   });
 
 export const sendMediaMessage = (convId, formData, onUploadProgress) =>
-  api.post(`/api/conversations/${convId}/send-media`, formData, {
+  api.post(`/api/conversations/${convId}/media`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress,
   });

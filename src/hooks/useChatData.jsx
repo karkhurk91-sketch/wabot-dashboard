@@ -9,9 +9,12 @@ export const useChatData = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const response = await chatApi.fetchConversations();
-      dispatch({ type: 'SET_CONVERSATIONS', payload: response.data });
+      const conversations = Array.isArray(response.data) ? response.data : [];
+      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
+      return conversations;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error?.response?.data?.detail || 'Unable to load conversations' });
+      return [];
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -22,13 +25,13 @@ export const useChatData = () => {
     dispatch({ type: 'SET_MESSAGES_LOADING', payload: true });
     try {
       const offset = reset ? 0 : state.messages.length;
-      const response = await chatApi.fetchConversationMessages(conversationId, 50, offset);
+      const messages = Array.isArray(response.data) ? response.data : [];
       if (reset) {
-        dispatch({ type: 'SET_MESSAGES', payload: response.data });
+        dispatch({ type: 'SET_MESSAGES', payload: messages });
       } else {
-        dispatch({ type: 'APPEND_MESSAGES', payload: response.data });
+        dispatch({ type: 'APPEND_MESSAGES', payload: messages });
       }
-      return response.data.length;
+      return messages.length;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error?.response?.data?.detail || 'Unable to load messages' });
       return 0;
@@ -77,6 +80,7 @@ export const useChatData = () => {
       dispatch({ type: 'SET_NOTES', payload: response.data });
     } catch (error) {
       console.error('Unable to load notes', error);
+      dispatch({ type: 'SET_NOTES', payload: [] });
     }
   }, [dispatch]);
 
@@ -84,9 +88,10 @@ export const useChatData = () => {
     if (!conversationId) return;
     try {
       const response = await chatApi.fetchConversationTags(conversationId);
-      dispatch({ type: 'SET_TAGS', payload: response.data });
+      dispatch({ type: 'SET_TAGS', payload: Array.isArray(response.data) ? response.data : [] });
     } catch (error) {
       console.error('Unable to load tags', error);
+      dispatch({ type: 'SET_TAGS', payload: [] });
     }
   }, [dispatch]);
 

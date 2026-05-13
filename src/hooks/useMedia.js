@@ -43,27 +43,28 @@ export const useMedia = (organizationId) => {
   }, []);
 
   const uploadMedia = useCallback(async (file, conversationId, onProgress = null) => {
+    if (!conversationId) {
+      throw new Error('Conversation ID is required to upload media');
+    }
+
     try {
       setUploading(true);
       setError(null);
       setProgress(0);
 
       // Validate file
-      const fileType = validateFile(file);
+      validateFile(file);
 
       // Create FormData
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('message_type', fileType);
-      formData.append('conversation_id', conversationId);
 
       // Upload with progress
       const response = await axiosInstance.post(
-        '/media/upload',
+        `/api/conversations/${conversationId}/media`,
         formData,
         {
           headers: {
-            'X-Organization-ID': organizationId,
             'Content-Type': 'multipart/form-data'
           },
           onUploadProgress: (progressEvent) => {
@@ -76,7 +77,7 @@ export const useMedia = (organizationId) => {
         }
       );
 
-      return response.data.data;
+      return response.data;
     } catch (err) {
       const errorMsg =
         err.response?.data?.detail || err.message || 'Upload failed';
