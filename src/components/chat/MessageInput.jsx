@@ -1,159 +1,151 @@
-/**
- * Enhanced Message Input Component
- * Supports text, emoji, and media input
- */
-
-import React, { useState, useRef, useCallback, memo } from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import React, { useState, useRef } from 'react';
+import useMediaUpload from '../../hooks/useMediaUpload';
 import EmojiPickerPanel from './EmojiPickerPanel';
-import MediaUploader from './MediaUploader';
 
-const MessageInputEnhanced = ({
-  message,
-  setMessage,
-  onSend,
-  onToggleEmoji,
-  emojiOpen,
-  onEmojiSelect,
-  onAttachmentToggle,
-  showAttachmentMenu,
-  attachmentProps,
-  inputRef,
-  sending,
-  uploading,
-  disabled,
-  onTyping,
-}) => {
-  const [showModernEmoji, setShowModernEmoji] = useState(false);
-  const emojiPickerRef = useRef(null);
+const MessageInput = ({ onSend, onTyping }) => {
+  const [message, setMessage] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const inputRef = useRef(null);
 
-  const handleEmojiClickModern = useCallback((event) => {
-    if (inputRef.current) {
-      const start = inputRef.current.selectionStart;
-      const end = inputRef.current.selectionEnd;
+  const mediaUpload = useMediaUpload();
+  const {
+    attachment,
+    error,
+    uploading,
+    setUploading,
+    clearAttachment,
+    buildFormData,
+    updateProgress,
+    hasAttachment,
+    getRootProps,
+    getInputProps,
+  } = mediaUpload;
 
-      const newContent =
-        message.substring(0, start) +
-        event.emoji +
-        message.substring(end);
+  const handleSend = async () => {
+    if (!message.trim() && !hasAttachment) return;
 
-      setMessage(newContent);
-      setShowModernEmoji(false);
-
-      setTimeout(() => {
-        const newPosition = start + event.emoji.length;
-        inputRef.current.selectionStart = newPosition;
-        inputRef.current.selectionEnd = newPosition;
-        inputRef.current.focus();
-      }, 0);
+    if (hasAttachment) {
+      const formData = buildFormData(message.trim());
+      if (!formData.has('file')) return;
+      setUploading(true);
+      try {
+        await onSend(message.trim(), formData, (progressEvent) => {
+          if (!progressEvent.lengthComputable) return;
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          updateProgress(percent);
+        });
+      } catch (err) {
+        console.error('Upload failed', err);
+      } finally {
+        setUploading(false);
+        clearAttachment();
+        setShowAttachmentMenu(false);
+      }
+    } else {
+      await onSend(message.trim(), null);
     }
-  }, [message, setMessage]);
 
-  const handleKeyPress = useCallback((e) => {
+    setMessage('');
+    setShowEmoji(false);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
     onTyping?.();
-  }, [onSend, onTyping]);
+  };
 
-  // Close emoji picker on outside click
-  React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(event.target)
-      ) {
-        setShowModernEmoji(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const onEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji.emoji);
+    setShowEmoji(false);
+    inputRef.current?.focus();
+  };
 
   return (
-    <div className="border-t border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
-      <div className="flex flex-col gap-4">
-        {/* Uploading preview is handled in the attachment menu below */}
-
-        <div className="flex items-center gap-2">
-          {/* Attachment Button */}
-          <button
-            type="button"
-            onClick={() => document.getElementById('chat-attachment-input')?.click()}
-            disabled={disabled || uploading}
-            className="rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            title="Attach media"
-          >
-            📎
-          </button>
-          <input
-            id="chat-attachment-input"
-            {...attachmentProps?.getInputProps?.()}
-            className="hidden"
-            disabled={disabled || uploading}
-          />
-
-          {/* Emoji Button */}
-          <div className="relative" ref={emojiPickerRef}>
-            <button
-              type="button"
-              onClick={() => setShowModernEmoji(!showModernEmoji)}
-              className="rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              title="Emoji"
-            >
-              😊
-            </button>
-            {showModernEmoji && (
-              <div className="absolute bottom-12 left-0 z-50">
-                <EmojiPicker onEmojiClick={handleEmojiClickModern} />
+    <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-3">
+      {showAttachmentMenu && (
+        <div className="mb-2">
+          <div {...getRootProps()} className="cursor-pointer inline-block">
+            <input {...getInputProps()} />
+            <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-sm">
+              Choose file to attach
+            </div>
+          </div>
+          {attachment && (
+            <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {attachment.name}
+                </div>
+                <button onClick={clearAttachment} className="text-sm text-red-500 hover:text-red-600">
+                  Remove
+                </button>
               </div>
-            )}
-          </div>
-
-          {/* Original emoji button */}
-          <button
-            type="button"
-            onClick={onToggleEmoji}
-            className="rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <i className="far fa-smile-wink" />
-          </button>
-
-          {/* Message Input */}
-          <input
-            ref={inputRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type a message or caption..."
-            className="flex-1 rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          />
-
-          {/* Send Button */}
-          <button
-            type="button"
-            onClick={onSend}
-            disabled={sending || (message.trim().length === 0 && !attachmentProps?.hasAttachment) || uploading}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Send
-          </button>
+              {attachment.preview && (
+                <div className="mt-3">
+                  {attachment.mediaType === 'image' ? (
+                    <img src={attachment.preview} className="max-h-36 w-full rounded-2xl object-cover" alt="preview" />
+                  ) : attachment.mediaType === 'video' ? (
+                    <video src={attachment.preview} controls className="max-h-36 w-full rounded-2xl object-cover" />
+                  ) : (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Ready to send {attachment.mediaType}.</p>
+                  )}
+                </div>
+              )}
+              <div className="mt-3 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${attachment.progress || 0}%` }} />
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {uploading ? `Uploading ${attachment.progress || 0}%` : 'Ready to send'}
+              </p>
+            </div>
+          )}
+          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
         </div>
+      )}
 
-        {/* Emoji Picker Panel */}
-        {emojiOpen && <EmojiPickerPanel onEmojiClick={onEmojiSelect} />}
-
-        {/* Attachment Menu */}
-        {showAttachmentMenu && (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-            <MediaUploader {...attachmentProps} uploading={uploading} />
-          </div>
-        )}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowAttachmentMenu((prev) => !prev)}
+          className="rounded-full p-2 text-slate-500 transition hover:text-emerald-600 dark:text-slate-400"
+        >
+          📎
+        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowEmoji((prev) => !prev)}
+            className="rounded-full p-2 text-slate-500 transition hover:text-emerald-600 dark:text-slate-400"
+          >
+            😊
+          </button>
+          {showEmoji && <EmojiPickerPanel onEmojiClick={onEmojiSelect} />}
+        </div>
+        <textarea
+          ref={inputRef}
+          rows={1}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyPress}
+          placeholder="Type a message"
+          className="min-h-[44px] flex-1 resize-none rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
+        />
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={uploading}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-700 disabled:opacity-50"
+        >
+          ➤
+        </button>
       </div>
     </div>
   );
 };
 
-export default memo(MessageInputEnhanced);
+export default MessageInput;

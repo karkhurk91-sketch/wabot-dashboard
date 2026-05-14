@@ -58,7 +58,7 @@ export const useChatData = () => {
         const limit = 50;
         const offset = reset ? 0 : state.messages.length;
         const response = await chatApi.fetchConversationMessages(conversationId, limit, offset);
-        const messages = Array.isArray(response.data) ? response.data : [];
+        const messages = Array.isArray(response.data) ? response.data.filter(m => m && typeof m === 'object') : [];
         if (reset) {
           dispatch({ type: 'SET_MESSAGES', payload: messages });
         } else {
@@ -238,6 +238,25 @@ export const useChatData = () => {
     [dispatch, loadConversations, syncSelectedConversation]
   );
 
+  const toggleMode = useCallback(
+    async (conversationId, mode) => {
+      if (!conversationId || !mode) return false;
+      try {
+        await chatApi.toggleConversationMode(conversationId, mode);
+        const list = await loadConversations();
+        syncSelectedConversation(list, conversationId);
+        return true;
+      } catch (error) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: error?.response?.data?.detail || 'Unable to change conversation mode',
+        });
+        return false;
+      }
+    },
+    [dispatch, loadConversations, syncSelectedConversation]
+  );
+
   const createConversation = useCallback(
     async (phoneNumber) => {
       if (!phoneNumber?.trim()) return null;
@@ -294,6 +313,7 @@ export const useChatData = () => {
     createOrgTag,
     assignAgent,
     unassignAgent,
+    toggleMode,
     createConversation,
     searchConversations,
   };

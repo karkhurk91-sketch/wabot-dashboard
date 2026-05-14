@@ -1,113 +1,128 @@
-import React, { memo, useMemo, useState } from 'react';
-import { formatPhone } from '../../utils/chatUtils';
+import React, { useState, useEffect } from 'react';
 
-const ConversationList = ({ conversations, selectedConversation, onSelect, searchTerm, onSearch, onCreateConversation }) => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+const ConversationList = ({
+  conversations = [],
+  activeId,
+  onSelect,
+  searchTerm = '',
+  onSearch,
+  onCreateConversation,
+}) => {
+  const [localSearch, setLocalSearch] = useState(searchTerm);
+  const [newPhone, setNewPhone] = useState('');
 
-  const filtered = useMemo(() => {
-    if (!searchTerm) return conversations;
-    return conversations.filter((conv) => {
-      const text = `${conv.customer_name || ''} ${conv.customer_phone_number || ''}`.toLowerCase();
-      return text.includes(searchTerm.toLowerCase());
-    });
-  }, [conversations, searchTerm]);
+  useEffect(() => {
+    setLocalSearch(searchTerm);
+  }, [searchTerm]);
+
+  const filtered = conversations.filter((conv) => {
+    const name = (conv?.customer_name || conv?.name || '').toLowerCase();
+    const phone = (conv?.customer_phone_number || conv?.phone || '').toLowerCase();
+    return name.includes(localSearch.toLowerCase()) || phone.includes(localSearch.toLowerCase());
+  });
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setLocalSearch(value);
+    onSearch?.(value);
+  };
 
   const handleCreate = async () => {
-    if (newPhoneNumber.trim()) {
-      await onCreateConversation(newPhoneNumber.trim());
-      setNewPhoneNumber('');
-      setShowCreateForm(false);
-    }
+    if (!newPhone.trim()) return;
+    await onCreateConversation?.(newPhone.trim());
+    setNewPhone('');
   };
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:w-96 xl:w-[26rem] lg:shrink-0 lg:border-r">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-950">
+      <div className="px-4 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Conversations</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {filtered.length} thread{filtered.length === 1 ? '' : 's'}
-            </p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent chats</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{filtered.length} threads</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-            {conversations.length}
-          </span>
-        </div>
-        <div className="mt-4 relative">
-          <input
-            value={searchTerm}
-            onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search by name or phone"
-            className="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          />
-        </div>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="mt-4 w-full rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          {showCreateForm ? 'Cancel' : 'Start New Conversation'}
-        </button>
-        {showCreateForm && (
-          <div className="mt-3 space-y-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
-              type="tel"
-              value={newPhoneNumber}
-              onChange={(e) => setNewPhoneNumber(e.target.value)}
-              placeholder="Enter phone number (e.g., +1234567890)"
-              className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              value={localSearch}
+              onChange={handleSearchChange}
+              placeholder="Search by name or phone"
+              className="w-full rounded-full border border-slate-200 bg-slate-100 py-3 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             <button
-              onClick={handleCreate}
-              disabled={!newPhoneNumber.trim()}
-              className="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:bg-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              type="button"
+              onClick={() => {
+                setLocalSearch('');
+                onSearch?.('');
+              }}
+              className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
-              Create Conversation
+              Clear
             </button>
           </div>
-        )}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <input
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
+            placeholder="Start chat with phone"
+            className="w-full rounded-full border border-slate-200 bg-slate-100 py-3 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+          <button
+            type="button"
+            onClick={handleCreate}
+            className="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+            disabled={!newPhone.trim()}
+          >
+            New
+          </button>
+        </div>
       </div>
-      <div className="overflow-y-auto flex-1 p-2 space-y-2">
-        {filtered.length === 0 && <div className="p-4 text-sm text-slate-500 dark:text-slate-400">No conversations found.</div>}
-        {filtered.map((conv) => {
-          const isActive = selectedConversation?.id === conv.id;
-          const last = conv.last_message;
-          const lastPreview =
-            typeof last === 'string'
-              ? last
-              : last && typeof last === 'object'
-                ? last.text ?? last.content ?? 'Message'
-                : 'No messages yet';
-          return (
-            <button
-              key={conv.id}
-              type="button"
-              onClick={() => onSelect(conv)}
-              className={`w-full rounded-3xl px-4 py-3 text-left transition ${isActive ? 'bg-indigo-50 text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-white">
-                    {(String(conv.customer_name || conv.customer_phone_number || 'U').trim().charAt(0) || 'U').toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{conv.customer_name || formatPhone(conv.customer_phone_number) || 'Unknown'}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">{lastPreview}</p>
+      <div className="flex-1 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="p-6 text-center text-slate-500 dark:text-slate-400">No conversations found</div>
+        ) : (
+          filtered.map((conv) => {
+            const isActive = activeId === conv.id;
+            const displayPhone = conv.customer_phone_number || conv.phone || 'No phone';
+            return (
+              <button
+                key={conv.id}
+                type="button"
+                onClick={() => onSelect(conv)}
+                className={`w-full text-left transition ${
+                  isActive ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-3 px-4 py-4">
+                  <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-semibold">
+                    {(conv.customer_name || conv.name || displayPhone || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {conv.customer_name || conv.name || 'Unknown'}
+                        </p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {displayPhone}
+                        </p>
+                      </div>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                        {conv.lastMessageTime || ''}
+                      </span>
+                    </div>
+                    <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
+                      {conv.lastMessage || 'No messages yet'}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs text-slate-400 dark:text-slate-500">{conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className={`rounded-full px-2 py-1 ${conv.reply_mode === 'ai' ? 'bg-amber-100 text-amber-700' : conv.reply_mode === 'human' ? 'bg-emerald-100 text-emerald-700' : 'bg-violet-100 text-violet-700'}`}>{conv.reply_mode === 'ai' ? '🤖 AI' : conv.reply_mode === 'human' ? '👤 Human' : '⚙️ Rule'}</span>
-                {conv.assigned_agent_name && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">👤 {conv.assigned_agent_name}</span>}
-              </div>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })
+        )}
       </div>
-    </aside>
+    </div>
   );
 };
 
-export default memo(ConversationList);
+export default ConversationList;

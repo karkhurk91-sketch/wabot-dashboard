@@ -1,21 +1,14 @@
-import React, { Suspense, useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useChatData } from '../../hooks/useChatData';
-import * as chatApi from '../../services/chatApi';
-import useMediaUpload from '../../hooks/useMediaUpload';
-import useEmojiPicker from '../../hooks/useEmojiPicker';
-import MessageInput from './MessageInput';
-import ChatSkeleton from './ChatSkeleton';
+import ConversationList from './ConversationList';
+import ChatHeader from './ChatHeader';
+import ChatWindow from './ChatWindow';
 import ConversationDetailsDrawer from './ConversationDetailsDrawer';
-
-const ConversationList = React.lazy(() => import('./ConversationList'));
-const ChatHeader = React.lazy(() => import('./ChatHeader'));
-const ChatWindow = React.lazy(() => import('./ChatWindow'));
+import ChatSkeleton from './ChatSkeleton';
 
 const ChatShell = () => {
-  const { user, userRole } = useAuth();
-  const { state, dispatch, darkMode } = useChat();
+  const { state, darkMode } = useChat();
   const {
     conversations,
     selectedConversation,
@@ -40,47 +33,36 @@ const ChatShell = () => {
     createOrgTag,
     assignAgent,
     unassignAgent,
+    toggleMode,
     createConversation,
     searchConversations,
   } = useChatData();
 
-  const mediaUpload = useMediaUpload();
-  const emojiPicker = useEmojiPicker();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchedConversations, setSearchedConversations] = useState(null);
-  const [messageText, setMessageText] = useState('');
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const inputRef = useRef(null);
-
-  const readOnly = userRole === 'viewer';
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
 
-  const handleModeChange = useCallback(
-    async (mode) => {
-      if (!selectedConversation?.id) return;
-      try {
-        await chatApi.toggleConversationMode(selectedConversation.id, mode);
-        dispatch({
-          type: 'SET_SELECTED_CONVERSATION',
-          payload: { ...selectedConversation, reply_mode: mode },
-        });
-        const list = await loadConversations();
-        const updated = list.find((c) => c.id === selectedConversation.id);
-        if (updated) dispatch({ type: 'SET_SELECTED_CONVERSATION', payload: updated });
-      } catch (err) {
-        dispatch({
-          type: 'SET_ERROR',
-          payload: err?.response?.data?.detail || 'Unable to update reply mode',
-        });
+  const conversationsToShow = useMemo(
+    () => (searchedConversations !== null ? searchedConversations : conversations),
+    [conversations, searchedConversations]
+  );
+
+  const handleSearch = useCallback(
+    async (term) => {
+      setSearchTerm(term);
+      if (!term.trim()) {
+        setSearchedConversations(null);
+        return;
       }
+      const results = await searchConversations(term);
+      setSearchedConversations(results);
     },
-    [selectedConversation, dispatch, loadConversations]
+    [searchConversations]
   );
 
   const handleSelectConversation = useCallback(
@@ -92,30 +74,38 @@ const ChatShell = () => {
     [selectConversation]
   );
 
-  const handleSearch = useCallback(
-    async (term) => {
-      setSearchTerm(term);
-      if (term.trim()) {
-        const results = await searchConversations(term);
-        setSearchedConversations(results);
-      } else {
-        setSearchedConversations(null);
-      }
-    },
-    [searchConversations]
-  );
-
   const handleCreateConversation = useCallback(
     async (phoneNumber) => {
       const newConv = await createConversation(phoneNumber);
-      if (newConv) {
-        await loadConversations(); // Reload to include new one
-        handleSelectConversation(newConv);
-        setSearchTerm(''); // Clear search
-        setSearchedConversations(null);
-      }
+      if (!newConv) return;
+      await loadConversations();
+      await handleSelectConversation(newConv);
+      setSearchTerm('');
+      setSearchedConversations(null);
     },
-    [createConversation, loadConversations, handleSelectConversation]
+    [createConversation, handleSelectConversation, loadConversations]
+  );
+
+  const handleLoadOlder = useCallback(
+    async (event) => {
+      if (!selectedConversation || messagesLoading || !hasMoreMessages) return;
+      const target = event.target;
+      if (target.scrollTop > 120) return;
+      const count = await loadMessages(selectedConversation.id, false);
+      setHasMoreMessages(count === 50);
+    },
+    [hasMoreMessages, loadMessages, messagesLoading, selectedConversation]
+  );
+
+  const handleSend = useCallback(
+    async (text, formData, onUploadProgress) => {
+      if (!selectedConversation) return null;
+      if (formData) {
+        return sendMedia(selectedConversation.id, formData, onUploadProgress);
+      }
+      return sendText(selectedConversation.id, text, 'agent');
+    },
+    [selectedConversation, sendMedia, sendText]
   );
 
   useEffect(() => {
@@ -124,81 +114,13 @@ const ChatShell = () => {
     }
   }, [conversations, selectedConversation, handleSelectConversation]);
 
-  const handleScroll = useCallback(
-    async (event) => {
-      if (event.target.scrollTop > 120 || !selectedConversation || messagesLoading || !hasMoreMessages) return;
-      const count = await loadMessages(selectedConversation.id, false);
-      setHasMoreMessages(count === 50);
-    },
-    [hasMoreMessages, loadMessages, messagesLoading, selectedConversation]
-  );
-
-  const handleEmojiSelect = useCallback(
-    (event, emojiObject) => {
-      const { selectionStart = 0, selectionEnd = 0 } = inputRef.current || {};
-      const next = emojiPicker.insertEmoji(emojiObject.emoji, messageText, selectionStart, selectionEnd);
-      setMessageText(next);
-      emojiPicker.closeEmojiPicker();
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        const nextPos = selectionStart + emojiObject.emoji.length;
-        inputRef.current?.setSelectionRange(nextPos, nextPos);
-      });
-    },
-    [emojiPicker, messageText]
-  );
-
-  const handleSend = useCallback(async () => {
-    if (!selectedConversation) return;
-    setSending(true);
-
-    if (mediaUpload.hasAttachment) {
-      mediaUpload.setUploading(true);
-      const formData = mediaUpload.buildFormData(messageText);
-      const result = await sendMedia(selectedConversation.id, formData, (event) => {
-        const progress = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
-        mediaUpload.updateProgress(progress);
-      });
-      mediaUpload.setUploading(false);
-      if (result) {
-        setMessageText('');
-        mediaUpload.clearAttachment();
-      }
-      setSending(false);
-      return;
-    }
-
-    if (!messageText.trim()) {
-      setSending(false);
-      return;
-    }
-
-    const result = await sendText(selectedConversation.id, messageText, userRole === 'org_admin' ? 'agent' : 'agent');
-    if (result) setMessageText('');
-    setSending(false);
-  }, [messageText, mediaUpload, sendMedia, sendText, selectedConversation, userRole]);
-
-  const attachmentInputProps = useMemo(
-    () => ({
-      ...mediaUpload,
-      hasAttachment: mediaUpload.hasAttachment,
-      error: mediaUpload.error,
-      getRootProps: mediaUpload.getRootProps,
-      getInputProps: mediaUpload.getInputProps,
-      isDragActive: mediaUpload.isDragActive,
-      onClear: mediaUpload.clearAttachment,
-    }),
-    [mediaUpload]
-  );
-
-  const safeTags = Array.isArray(tags) ? tags : [];
-
-  const drawerAddNote = useCallback(
-    async (conversationId, text) => {
-      return addNote(conversationId, text);
-    },
-    [addNote]
-  );
+  if (loading && conversations.length === 0) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-slate-500">Loading conversations...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex min-h-screen flex-col overflow-hidden ${darkMode.darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -209,17 +131,17 @@ const ChatShell = () => {
             <h1 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">Messaging center</h1>
           </div>
           <div className="rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
-            {Array.isArray(conversations) ? conversations.length : 0} active threads
+            {conversations.length} active threads
           </div>
         </div>
       </div>
 
-      <div className="mx-auto flex flex-1 min-h-0 w-full max-w-[1800px] flex-col lg:flex-row">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1800px] flex-1 flex-col lg:flex-row">
         <div className="flex h-full min-h-0 w-full flex-col border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 lg:h-full lg:border-b-0 lg:border-r lg:w-[28rem] xl:w-[32rem]">
           <Suspense fallback={<div className="p-6 text-center text-slate-500">Loading conversations…</div>}>
             <ConversationList
-              conversations={searchedConversations || (Array.isArray(conversations) ? conversations : [])}
-              selectedConversation={selectedConversation}
+              conversations={conversationsToShow}
+              activeId={selectedConversation?.id}
               onSelect={handleSelectConversation}
               searchTerm={searchTerm}
               onSearch={handleSearch}
@@ -232,9 +154,12 @@ const ChatShell = () => {
           <Suspense fallback={<ChatSkeleton />}>
             <ChatHeader
               selectedConversation={selectedConversation}
-              tags={safeTags}
-              userRole={userRole}
-              onModeChange={handleModeChange}
+              tags={tags}
+              userRole="org_admin"
+              onModeChange={async (mode) => {
+                if (!selectedConversation) return;
+                await toggleMode(selectedConversation.id, mode);
+              }}
               onTransfer={() => setDrawerOpen(true)}
               onOpenDrawer={() => setDrawerOpen(true)}
               onToggleDarkMode={darkMode.toggleDarkMode}
@@ -242,33 +167,14 @@ const ChatShell = () => {
             />
             <ChatWindow
               conversation={selectedConversation}
-              messages={Array.isArray(messages) ? messages : []}
-              loading={loading}
+              messages={messages}
               messagesLoading={messagesLoading}
               typing={typing}
-              onScroll={handleScroll}
-              hasMore={hasMoreMessages}
+              onScroll={handleLoadOlder}
+              onSend={handleSend}
+              onOpenDetails={() => setDrawerOpen(true)}
             />
           </Suspense>
-
-          <div className="shrink-0 border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
-            <MessageInput
-              message={messageText}
-              setMessage={setMessageText}
-              onSend={handleSend}
-              onToggleEmoji={emojiPicker.toggleEmojiPicker}
-              emojiOpen={emojiPicker.open}
-              onEmojiSelect={handleEmojiSelect}
-              onAttachmentToggle={() => setShowAttachmentMenu((prev) => !prev)}
-              showAttachmentMenu={showAttachmentMenu}
-              attachmentProps={attachmentInputProps}
-              inputRef={inputRef}
-              sending={sending}
-              uploading={mediaUpload.uploading}
-              organizationId={user?.org_id}
-              conversationId={selectedConversation?.id}
-            />
-          </div>
         </div>
       </div>
 
@@ -276,10 +182,10 @@ const ChatShell = () => {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         conversation={selectedConversation}
-        notes={Array.isArray(notes) ? notes : []}
-        tags={safeTags}
-        readOnly={readOnly}
-        onAddNote={drawerAddNote}
+        notes={notes}
+        tags={tags}
+        readOnly={false}
+        onAddNote={addNote}
         onAttachTag={attachTag}
         onDetachTag={detachTag}
         onCreateOrgTag={createOrgTag}

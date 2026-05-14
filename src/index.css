@@ -1,3 +1,28 @@
+/* Already present – ensure Tailwind directives are there */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Add these to fix scroll behaviour */
+body {
+  overflow: hidden;
+  height: 100vh;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+.messages-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.messages-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+.dark .messages-container::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+.dark .messages-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
