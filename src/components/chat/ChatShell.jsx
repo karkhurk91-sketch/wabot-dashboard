@@ -201,12 +201,21 @@ const ChatShell = () => {
   );
 
   return (
-    <div
-      className={`flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden ${darkMode.darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}
-    >
-      {/* Always show conversation list + chat (stacked on small screens, side‑by‑side on lg+) */}
-      <div className="mx-auto flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row lg:max-w-[1800px]">
-        <div className="flex min-h-[12rem] max-h-[40vh] w-full shrink-0 flex-col border-b border-slate-200 dark:border-slate-700 lg:h-full lg:max-h-none lg:min-h-0 lg:w-96 lg:shrink-0 lg:border-b-0 lg:border-r xl:w-[26rem]">
+    <div className={`flex min-h-screen flex-col overflow-hidden ${darkMode.darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <div className="border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/95 lg:px-6">
+        <div className="mx-auto flex max-w-[1800px] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Conversations</p>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">Messaging center</h1>
+          </div>
+          <div className="rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
+            {Array.isArray(conversations) ? conversations.length : 0} active threads
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto flex flex-1 min-h-0 w-full max-w-[1800px] flex-col lg:flex-row">
+        <div className="flex h-full min-h-0 w-full flex-col border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 lg:h-full lg:border-b-0 lg:border-r lg:w-[28rem] xl:w-[32rem]">
           <Suspense fallback={<div className="p-6 text-center text-slate-500">Loading conversations…</div>}>
             <ConversationList
               conversations={searchedConversations || (Array.isArray(conversations) ? conversations : [])}
@@ -219,7 +228,7 @@ const ChatShell = () => {
           </Suspense>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <Suspense fallback={<ChatSkeleton />}>
             <ChatHeader
               selectedConversation={selectedConversation}
@@ -242,7 +251,7 @@ const ChatShell = () => {
             />
           </Suspense>
 
-          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700">
+          <div className="shrink-0 border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
             <MessageInput
               message={messageText}
               setMessage={setMessageText}
