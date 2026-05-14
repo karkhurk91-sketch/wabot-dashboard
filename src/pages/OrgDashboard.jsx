@@ -39,37 +39,21 @@ const OrgDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const settled = await Promise.allSettled([
-        api.get('/api/customers?page=1&limit=1'),
+      // Fetch all required data in parallel
+      const [customersRes, conversationsRes, leadsRes, bookingsRes, activityRes] = await Promise.all([
+        api.get('/api/customers?limit=1'), // we only need the total count
         api.get('/api/conversations'),
         api.get('/api/leads'),
         api.get('/api/bookings'),
-        api.get('/api/analytics/activity?period=daily'),
+        api.get('/api/analytics/activity?period=daily').catch(() => ({ data: { messages: [] } }))
       ]);
 
-      const res = (i) => (settled[i].status === 'fulfilled' ? settled[i].value : null);
-
-      if (!settled.some((s) => s.status === 'fulfilled')) {
-        setError('Unable to load dashboard data. Please refresh the page.');
-        setStats({ customers: 0, conversations: 0, leads: 0, bookings: 0 });
-        setRecentLeads([]);
-        setRecentConversations([]);
-        setLeadStatusData([]);
-        setMessageData([]);
-        return;
-      }
-
-      const customersRes = res(0);
-      const conversationsRes = res(1);
-      const leadsRes = res(2);
-      const bookingsRes = res(3);
-      const activityRes = res(4) || { data: { messages: [] } };
-
-      const getCount = (r) => {
-        if (!r) return 0;
-        const d = r?.data;
+      // Extract counts (handles both array and paginated responses)
+      const getCount = (res) => {
+        const d = res?.data;
         if (Array.isArray(d)) return d.length;
         if (d && typeof d === 'object' && 'total' in d) return Number(d.total) || 0;
+        if (Array.isArray(res)) return res.length;
         return 0;
       };
 
@@ -81,9 +65,8 @@ const OrgDashboard = () => {
             ? customerPayload.length
             : 0;
 
-      const asArray = (r) => {
-        if (!r) return [];
-        const d = r?.data;
+      const asArray = (res) => {
+        const d = res?.data;
         if (Array.isArray(d)) return d;
         if (d && typeof d === 'object' && Array.isArray(d.data)) return d.data;
         return [];
@@ -96,21 +79,24 @@ const OrgDashboard = () => {
         bookings: getCount(bookingsRes),
       });
 
+      // Recent items (first 5)
       const leadsArray = asArray(leadsRes);
       const convsArray = asArray(conversationsRes);
       setRecentLeads(leadsArray.slice(0, 5));
       setRecentConversations(convsArray.slice(0, 5));
 
+      // Lead status breakdown
       const statusCount = {};
       leadsArray.forEach((lead) => {
         const status = formatScalar(lead.status) || 'new';
         statusCount[status] = (statusCount[status] || 0) + 1;
       });
-      const statusArray = Object.keys(statusCount).map((key) => ({ name: key, value: statusCount[key] }));
+      const statusArray = Object.keys(statusCount).map(key => ({ name: key, value: statusCount[key] }));
       setLeadStatusData(statusArray);
 
+      // Message activity (last 7 days)
       const messages = activityRes?.data?.messages || [];
-      setMessageData(Array.isArray(messages) ? messages.slice(-7) : []);
+      setMessageData(messages.slice(-7));
     } catch (err) {
       console.error('Failed to load dashboard data', err);
       setError('Unable to load dashboard data. Please refresh the page.');

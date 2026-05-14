@@ -238,6 +238,47 @@ export const useChatData = () => {
     [dispatch, loadConversations, syncSelectedConversation]
   );
 
+  const createConversation = useCallback(
+    async (phoneNumber) => {
+      if (!phoneNumber?.trim()) return null;
+      try {
+        const response = await chatApi.createConversation(phoneNumber.trim());
+        const newConv = response.data;
+        // Reload conversations to include the new one
+        await loadConversations();
+        return newConv;
+      } catch (error) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: error?.response?.data?.detail || 'Unable to create conversation',
+        });
+        return null;
+      }
+    },
+    [dispatch, loadConversations]
+  );
+
+  const searchConversations = useCallback(
+    async (searchTerm) => {
+      if (!searchTerm?.trim()) return [];
+      dispatch({ type: 'SET_LOADING', payload: true });
+      try {
+        const response = await chatApi.searchConversations(searchTerm.trim());
+        const conversations = Array.isArray(response.data) ? response.data : [];
+        return conversations;
+      } catch (error) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: error?.response?.data?.detail || 'Unable to search conversations',
+        });
+        return [];
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    },
+    [dispatch]
+  );
+
   return {
     ...state,
     loadConversations,
@@ -253,5 +294,7 @@ export const useChatData = () => {
     createOrgTag,
     assignAgent,
     unassignAgent,
+    createConversation,
+    searchConversations,
   };
 };

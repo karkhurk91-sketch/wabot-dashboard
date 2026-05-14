@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalOrganizations: 0,
     totalConversations: 0,
@@ -10,18 +12,40 @@ const Dashboard = () => {
     marketing: 0,
     utility: 0,
   });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const res = await api.get('/api/admin/stats');
         setStats(res.data);
+        setError(null);
       } catch (error) {
         console.error(error);
+        setError('You do not have permission to view this dashboard. Please contact your administrator.');
       }
     };
-    fetchStats();
-  }, []);
+    if (user?.role === 'super_admin') {
+      fetchStats();
+    } else {
+      setError('This dashboard is only available to super administrators.');
+    }
+  }, [user]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Super Admin Dashboard</h1>
 
   return (
     <div>

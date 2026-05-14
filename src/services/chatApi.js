@@ -2,6 +2,12 @@ import api from './api';
 
 export const fetchConversations = () => api.get('/api/conversations');
 
+export const createConversation = (phoneNumber) =>
+  api.post('/api/conversations', { phone_number: phoneNumber });
+
+export const searchConversations = (searchTerm) =>
+  api.get(`/api/conversations/search?q=${encodeURIComponent(searchTerm)}`);
+
 export const fetchConversationMessages = (convId, limit = 50, offset = 0) =>
   api.get(`/api/conversations/${convId}/messages?limit=${limit}&offset=${offset}`);
 

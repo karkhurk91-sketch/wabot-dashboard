@@ -1,7 +1,10 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { formatPhone } from '../../utils/chatUtils';
 
-const ConversationList = ({ conversations, selectedConversation, onSelect, searchTerm, onSearch }) => {
+const ConversationList = ({ conversations, selectedConversation, onSelect, searchTerm, onSearch, onCreateConversation }) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+
   const filtered = useMemo(() => {
     if (!searchTerm) return conversations;
     return conversations.filter((conv) => {
@@ -9,6 +12,14 @@ const ConversationList = ({ conversations, selectedConversation, onSelect, searc
       return text.includes(searchTerm.toLowerCase());
     });
   }, [conversations, searchTerm]);
+
+  const handleCreate = async () => {
+    if (newPhoneNumber.trim()) {
+      await onCreateConversation(newPhoneNumber.trim());
+      setNewPhoneNumber('');
+      setShowCreateForm(false);
+    }
+  };
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:w-96 xl:w-[26rem] lg:shrink-0 lg:border-r">
@@ -22,6 +33,30 @@ const ConversationList = ({ conversations, selectedConversation, onSelect, searc
             className="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
         </div>
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="mt-3 w-full rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          {showCreateForm ? 'Cancel' : 'Start New Conversation'}
+        </button>
+        {showCreateForm && (
+          <div className="mt-3 space-y-2">
+            <input
+              type="tel"
+              value={newPhoneNumber}
+              onChange={(e) => setNewPhoneNumber(e.target.value)}
+              placeholder="Enter phone number (e.g., +1234567890)"
+              className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!newPhoneNumber.trim()}
+              className="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:bg-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              Create Conversation
+            </button>
+          </div>
+        )}
       </div>
       <div className="overflow-y-auto flex-1 p-2 space-y-2">
         {filtered.length === 0 && <div className="p-4 text-sm text-slate-500 dark:text-slate-400">No conversations found.</div>}

@@ -40,11 +40,14 @@ const ChatShell = () => {
     createOrgTag,
     assignAgent,
     unassignAgent,
+    createConversation,
+    searchConversations,
   } = useChatData();
 
   const mediaUpload = useMediaUpload();
   const emojiPicker = useEmojiPicker();
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchedConversations, setSearchedConversations] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [sending, setSending] = useState(false);
@@ -87,6 +90,32 @@ const ChatShell = () => {
       setHasMoreMessages(count === 50);
     },
     [selectConversation]
+  );
+
+  const handleSearch = useCallback(
+    async (term) => {
+      setSearchTerm(term);
+      if (term.trim()) {
+        const results = await searchConversations(term);
+        setSearchedConversations(results);
+      } else {
+        setSearchedConversations(null);
+      }
+    },
+    [searchConversations]
+  );
+
+  const handleCreateConversation = useCallback(
+    async (phoneNumber) => {
+      const newConv = await createConversation(phoneNumber);
+      if (newConv) {
+        await loadConversations(); // Reload to include new one
+        handleSelectConversation(newConv);
+        setSearchTerm(''); // Clear search
+        setSearchedConversations(null);
+      }
+    },
+    [createConversation, loadConversations, handleSelectConversation]
   );
 
   useEffect(() => {
@@ -180,11 +209,12 @@ const ChatShell = () => {
         <div className="flex min-h-[12rem] max-h-[40vh] w-full shrink-0 flex-col border-b border-slate-200 dark:border-slate-700 lg:h-full lg:max-h-none lg:min-h-0 lg:w-96 lg:shrink-0 lg:border-b-0 lg:border-r xl:w-[26rem]">
           <Suspense fallback={<div className="p-6 text-center text-slate-500">Loading conversations…</div>}>
             <ConversationList
-              conversations={Array.isArray(conversations) ? conversations : []}
+              conversations={searchedConversations || (Array.isArray(conversations) ? conversations : [])}
               selectedConversation={selectedConversation}
               onSelect={handleSelectConversation}
               searchTerm={searchTerm}
-              onSearch={setSearchTerm}
+              onSearch={handleSearch}
+              onCreateConversation={handleCreateConversation}
             />
           </Suspense>
         </div>
