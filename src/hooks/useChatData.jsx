@@ -109,14 +109,21 @@ export const useChatData = () => {
 
   const sendMedia = useCallback(
     async (conversationId, formData, onUploadProgress) => {
-      if (!conversationId || !formData) return null;
+      console.log('useChatData - sendMedia called', { conversationId, formData: !!formData });
+      if (!conversationId || !formData) {
+        console.error('useChatData - sendMedia missing required params', { conversationId, formData });
+        return null;
+      }
       try {
+        console.log('useChatData - calling chatApi.sendMediaMessage...');
         const response = await chatApi.sendMediaMessage(conversationId, formData, onUploadProgress);
+        console.log('useChatData - sendMediaMessage response:', response);
         await loadMessages(conversationId, true);
         const list = await loadConversations();
         syncSelectedConversation(list, conversationId);
         return response.data;
       } catch (error) {
+        console.error('useChatData - sendMedia failed:', error);
         dispatch({ type: 'SET_ERROR', payload: error?.response?.data?.detail || 'Unable to send media' });
         return null;
       }

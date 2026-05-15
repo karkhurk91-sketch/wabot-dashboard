@@ -34,14 +34,16 @@ export default function useMediaUpload() {
   }, []);
 
   const handleFile = useCallback((file) => {
+    console.log('useMediaUpload - handleFile called with:', file);
     const validation = validateFile(file);
+    console.log('useMediaUpload - validation result:', validation);
     if (!validation.valid) {
       setAttachment(null);
       setError(validation.error);
       return;
     }
 
-    setAttachment({
+    const newAttachment = {
       file,
       mediaType: validation.mediaType,
       preview: URL.createObjectURL(file),
@@ -50,16 +52,21 @@ export default function useMediaUpload() {
       progress: 0,
       status: 'ready',
       error: null,
-    });
+    };
+    console.log('useMediaUpload - setting attachment:', newAttachment);
+    setAttachment(newAttachment);
     setError('');
   }, [validateFile]);
 
   const onDrop = useCallback((acceptedFiles, fileRejections) => {
+    console.log('useMediaUpload - onDrop called', { acceptedFiles, fileRejections });
     if (fileRejections.length) {
+      console.log('useMediaUpload - file rejections:', fileRejections);
       setError('Invalid file selected. Only allowed media types are supported.');
       return;
     }
     if (acceptedFiles.length > 0) {
+      console.log('useMediaUpload - accepted file:', acceptedFiles[0]);
       handleFile(acceptedFiles[0]);
     }
   }, [handleFile]);
@@ -68,8 +75,20 @@ export default function useMediaUpload() {
     onDrop,
     accept: getAllowedMimeTypes(),
     maxFiles: 1,
-    noClick: true,
+    noClick: false,  // Allow clicking to trigger file picker
     noKeyboard: true,
+  });
+
+  console.log('useMediaUpload - dropzone config:', {
+    accept: getAllowedMimeTypes(),
+    maxFiles: 1,
+    noClick: false,  // Allow clicking to trigger file picker
+    noKeyboard: true,
+  });
+  console.log('useMediaUpload - dropzone state:', {
+    isDragActive: dropzone.isDragActive,
+    isDragAccept: dropzone.isDragAccept,
+    isDragReject: dropzone.isDragReject,
   });
 
   const clearAttachment = useCallback(() => {
@@ -87,6 +106,8 @@ export default function useMediaUpload() {
     if (attachment?.file) {
       formData.append('file', attachment.file);
       formData.append('caption', caption);
+      formData.append('message_type', attachment.mediaType);
+      formData.append('file_name', attachment.name);
     }
     return formData;
   }, [attachment]);

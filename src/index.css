@@ -26,3 +26,9 @@ body {
 .dark .messages-container::-webkit-scrollbar-thumb {
   background: #555;
 }
+
+.anil { /* the element was .flex.min-h-screen.flex-col.overflow-hidden.bg-slate-50.text-slate-900 */
+  height: 100dvh;
+  max-height: 100vh;
+  overflow-y: scroll;
+}

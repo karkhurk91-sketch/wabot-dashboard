@@ -78,7 +78,7 @@ const ChatWindow = ({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 sm:px-6"
+        className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 anil"
       >
         {messagesLoading ? (
           <div className="flex h-full min-h-[50vh] items-center justify-center text-slate-500 dark:text-slate-400">

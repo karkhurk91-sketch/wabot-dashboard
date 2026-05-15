@@ -19,7 +19,6 @@ export const sendTextMessage = (convId, text, senderType) =>
 
 export const sendMediaMessage = (convId, formData, onUploadProgress) =>
   api.post(`/api/conversations/${convId}/media`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress,
   });
 

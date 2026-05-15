@@ -16,10 +16,15 @@ const MessageBubble = ({ message, isOwn }) => {
         </div>
         {isMediaMessage(message.message_type) ? (
           <div className="space-y-2">
-            {message.message_type === 'image' && <img src={message.media_url} alt="attachment" className="rounded-xl object-contain max-h-72 w-full" />}
-            {message.message_type === 'video' && <video controls src={message.media_url} className="rounded-xl max-h-72 w-full" />}
-            {message.message_type === 'audio' && <audio controls src={message.media_url} className="w-full" />}
-            {message.message_type === 'document' && (
+            {!message.media_url ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                Media attachment is uploading or unavailable.
+              </div>
+            ) : null}
+            {message.message_type === 'image' && message.media_url && <img src={message.media_url} alt="attachment" className="rounded-xl object-contain max-h-72 w-full" />}
+            {message.message_type === 'video' && message.media_url && <video controls src={message.media_url} className="rounded-xl max-h-72 w-full" />}
+            {message.message_type === 'audio' && message.media_url && <audio controls src={message.media_url} className="w-full" />}
+            {message.message_type === 'document' && message.media_url && (
               <a href={message.media_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                 <span>📄 {message.media_file_name || getMediaLabel(message.message_type)}</span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">{message.media_file_size ? formatFileSize(message.media_file_size) : ''}</span>

@@ -22,32 +22,53 @@ const MessageInput = ({ onSend, onTyping }) => {
     getInputProps,
   } = mediaUpload;
 
+  // Debug: Check if dropzone input is properly configured
+  console.log('MessageInput render - dropzone input props:', getInputProps());
+  console.log('MessageInput render - dropzone root props:', getRootProps());
+
   const handleSend = async () => {
     if (!message.trim() && !hasAttachment) return;
+    let sendSucceeded = false;
 
     if (hasAttachment) {
       const formData = buildFormData(message.trim());
-      if (!formData.has('file')) return;
+      if (!formData.has('file')) {
+        console.error('FormData missing file - aborting send');
+        return;
+      }
+      console.debug('Sending media attachment', {
+        fileName: formData.get('file')?.name,
+        messageType: formData.get('message_type'),
+        caption: message.trim(),
+      });
       setUploading(true);
+      console.log('Starting upload process...');
       try {
+        console.log('Calling onSend with formData...');
         await onSend(message.trim(), formData, (progressEvent) => {
           if (!progressEvent.lengthComputable) return;
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${percent}%`);
           updateProgress(percent);
         });
+        console.log('Upload completed successfully');
+        clearAttachment();
+        setShowAttachmentMenu(false);
+        sendSucceeded = true;
       } catch (err) {
         console.error('Upload failed', err);
       } finally {
         setUploading(false);
-        clearAttachment();
-        setShowAttachmentMenu(false);
       }
     } else {
       await onSend(message.trim(), null);
+      sendSucceeded = true;
     }
 
-    setMessage('');
-    setShowEmoji(false);
+    if (sendSucceeded) {
+      setMessage('');
+      setShowEmoji(false);
+    }
     inputRef.current?.focus();
   };
 
@@ -111,7 +132,10 @@ const MessageInput = ({ onSend, onTyping }) => {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setShowAttachmentMenu((prev) => !prev)}
+          onClick={() => {
+            console.log('Attachment button clicked - toggling menu');
+            setShowAttachmentMenu((prev) => !prev);
+          }}
           className="rounded-full p-2 text-slate-500 transition hover:text-emerald-600 dark:text-slate-400"
         >
           📎
