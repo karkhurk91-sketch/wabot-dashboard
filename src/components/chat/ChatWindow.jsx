@@ -92,9 +92,15 @@ const ChatWindow = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} isOwn={msg.sender_id === user?.id} />
-            ))}
+            {messages.map((msg) => {
+              const userId = user?.user_id ?? user?.id; // support tokens with user_id or id
+              const isOwn = Boolean(
+                (msg.sender_id && userId && String(msg.sender_id) === String(userId)) ||
+                msg.sender_type === 'outbound' ||
+                msg.direction === 'outbound'
+              );
+              return <MessageBubble key={msg.id} message={msg} isOwn={isOwn} />;
+            })}
           </div>
         )}
 
