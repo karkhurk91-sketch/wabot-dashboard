@@ -12,6 +12,7 @@ const ChatWindow = ({
   onScroll,
   onSend,
   onOpenDetails,
+  onMessageSent,   // ← already destructured
 }) => {
   const { user } = useAuth();
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -93,7 +94,7 @@ const ChatWindow = ({
         ) : (
           <div className="space-y-3">
             {messages.map((msg) => {
-              const userId = user?.user_id ?? user?.id; // support tokens with user_id or id
+              const userId = user?.user_id ?? user?.id;
               const isOwn = Boolean(
                 (msg.sender_id && userId && String(msg.sender_id) === String(userId)) ||
                 msg.sender_type === 'outbound' ||
@@ -115,7 +116,8 @@ const ChatWindow = ({
       </div>
 
       <div className="border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
-        <MessageInput onSend={onSend} />
+        {/* ✅ Pass onMessageSent to MessageInput */}
+        <MessageInput onSend={onSend} onMessageSent={onMessageSent} />
       </div>
 
       {!isAtBottom && messages.length > 0 && (

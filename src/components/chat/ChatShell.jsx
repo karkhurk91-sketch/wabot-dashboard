@@ -8,7 +8,7 @@ import ConversationDetailsDrawer from './ConversationDetailsDrawer';
 import ChatSkeleton from './ChatSkeleton';
 
 const ChatShell = () => {
-  const { state, darkMode } = useChat();
+  const { state, darkMode, dispatch } = useChat();
   const {
     conversations,
     selectedConversation,
@@ -108,6 +108,35 @@ const ChatShell = () => {
     [selectedConversation, sendMedia, sendText]
   );
 
+  const handleMessageSent = (response) => {
+    console.log('📨 handleMessageSent called with response:', response);
+    
+    if (!response.media_url) {
+      console.warn('No media_url in response, skipping optimistic update');
+      return;
+    }
+
+    const newMessage = {
+      id: response.message_id,
+      media_url: response.media_url,
+      message_type: response.message_type || 'image',
+      content: response.caption || '',
+      direction: 'outbound',
+      status: 'sent',
+      created_at: new Date().toISOString(),
+      media_file_name: response.media_file_name || '',
+    };
+
+    // Check if message already exists in state
+    const exists = state.messages.some(msg => msg.id === newMessage.id);
+    if (!exists) {
+      console.log('✅ Dispatching APPEND_MESSAGES with:', newMessage);
+      dispatch({ type: 'APPEND_MESSAGES', payload: [newMessage] });
+    } else {
+      console.log('⚠️ Message already exists, skipping duplicate');
+    }
+  };
+
   useEffect(() => {
     if (!selectedConversation && conversations.length > 0) {
       handleSelectConversation(conversations[0]);
@@ -173,6 +202,7 @@ const ChatShell = () => {
               onScroll={handleLoadOlder}
               onSend={handleSend}
               onOpenDetails={() => setDrawerOpen(true)}
+              onMessageSent={handleMessageSent}
             />
           </Suspense>
         </div>

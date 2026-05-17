@@ -27,9 +27,24 @@ const chatReducer = (state, action) => {
     case 'SET_SELECTED_CONVERSATION':
       return { ...state, selectedConversation: action.payload };
     case 'SET_MESSAGES':
-      return { ...state, messages: action.payload };
+      // Sort messages by created_at (oldest first)
+      const sortedMessages = [...action.payload].sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateA - dateB;
+      });
+      return { ...state, messages: sortedMessages };
     case 'APPEND_MESSAGES':
-      return { ...state, messages: [...action.payload, ...state.messages] };
+      // Remove duplicates and sort the entire list
+      const existingIds = new Set(state.messages.map(msg => msg.id));
+      const uniqueNewMessages = action.payload.filter(msg => !existingIds.has(msg.id));
+      const combined = [...state.messages, ...uniqueNewMessages];
+      const sortedCombined = combined.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateA - dateB;
+      });
+      return { ...state, messages: sortedCombined };
     case 'SET_NOTES':
       return { ...state, notes: action.payload };
     case 'SET_TAGS':

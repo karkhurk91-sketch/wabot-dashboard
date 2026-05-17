@@ -32,3 +32,8 @@ body {
   max-height: 100vh;
   overflow-y: scroll;
 }
+
+img.rounded-xl {
+  display: block !important;
+  max-width: 100%;
+}

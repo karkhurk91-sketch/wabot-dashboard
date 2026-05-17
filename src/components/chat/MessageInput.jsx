@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import useMediaUpload from '../../hooks/useMediaUpload';
 import EmojiPickerPanel from './EmojiPickerPanel';
 
-const MessageInput = ({ onSend, onTyping }) => {
+const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -28,7 +28,9 @@ const MessageInput = ({ onSend, onTyping }) => {
 
   const handleSend = async () => {
     if (!message.trim() && !hasAttachment) return;
-    let sendSucceeded = false;
+    //let sendSucceeded = false;
+    let response = null;
+
 
     if (hasAttachment) {
       const formData = buildFormData(message.trim());
@@ -45,30 +47,33 @@ const MessageInput = ({ onSend, onTyping }) => {
       console.log('Starting upload process...');
       try {
         console.log('Calling onSend with formData...');
-        await onSend(message.trim(), formData, (progressEvent) => {
+        response = await onSend(message.trim(), formData, (progressEvent) => {
           if (!progressEvent.lengthComputable) return;
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           console.log(`Upload progress: ${percent}%`);
           updateProgress(percent);
         });
-        console.log('Upload completed successfully');
+        console.log('Upload completed successfully, response:', response);
         clearAttachment();
         setShowAttachmentMenu(false);
-        sendSucceeded = true;
+        //sendSucceeded = true;
       } catch (err) {
         console.error('Upload failed', err);
+        return;
       } finally {
         setUploading(false);
       }
     } else {
-      await onSend(message.trim(), null);
-      sendSucceeded = true;
+      response = await onSend(message.trim(), null);
+      //sendSucceeded = true;
     }
 
-    if (sendSucceeded) {
-      setMessage('');
-      setShowEmoji(false);
+    if (response && onMessageSent) {
+      onMessageSent(response); // ← notify parent
     }
+
+    setMessage('');
+    setShowEmoji(false);
     inputRef.current?.focus();
   };
 
