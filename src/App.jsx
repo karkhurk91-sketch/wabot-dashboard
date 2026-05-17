@@ -42,6 +42,8 @@ import Calendar from './pages/Calendar';
 import OrganizationChannels from './pages/OrganizationChannels';
 import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
+import WhatsAppTemplates from './pages/WhatsAppTemplates';
+
 
 // Partner pages
 import AdminPartners from './pages/AdminPartners';
@@ -95,6 +97,7 @@ function App() {
           <Route path="/campaigns" element={<ProtectedRoute requiredRole="org_admin"><Campaigns /></ProtectedRoute>} />
           <Route path="/campaigns/:id" element={<ProtectedRoute requiredRole="org_admin"><CampaignDetail /></ProtectedRoute>} />
           <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />
+          <Route path="/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
 
           {/* Partner routes */}
           <Route path="/admin/partners" element={<ProtectedRoute requiredRole="super_admin"><AdminPartners /></ProtectedRoute>} />
