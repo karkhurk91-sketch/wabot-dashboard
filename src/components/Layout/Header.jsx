@@ -48,7 +48,8 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-40 bg-white shadow">
       <div className="flex items-center justify-between px-6 py-3">
-        <div className="text-xl font-bold text-gray-800">WABot</div>
+        {/* Logo changed from "WABot" to "SahAI" */}
+        <div className="text-xl font-bold text-gray-800">SahAI</div>
         <div className="flex items-center gap-4">
           {/* Message counts badge */}
           {user && user.org_id && (
@@ -69,7 +70,7 @@ const Header = () => {
               )}
             </div>
           )}
-          {/* User dropdown unchanged */}
+          {/* User dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
