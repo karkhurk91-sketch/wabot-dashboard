@@ -11,6 +11,9 @@ const ChatHeader = ({
   darkMode,
 }) => {
   const tagList = Array.isArray(tags) ? tags : [];
+
+
+  
   return (
     <div className="shrink-0 flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:px-5 sm:py-4">
       <div className="flex items-center justify-between gap-3">

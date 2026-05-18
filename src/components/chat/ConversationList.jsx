@@ -106,6 +106,9 @@ const ConversationList = ({
                         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                           {displayPhone}
                         </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          Mode: <span className="capitalize">{conv.reply_mode || 'human'}</span>
+                        </p>
                       </div>
                       <span className="text-xs text-slate-400 dark:text-slate-500">
                         {conv.lastMessageTime || ''}
@@ -114,6 +117,7 @@ const ConversationList = ({
                     <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
                       {conv.lastMessage || 'No messages yet'}
                     </p>
+
                   </div>
                 </div>
               </button>

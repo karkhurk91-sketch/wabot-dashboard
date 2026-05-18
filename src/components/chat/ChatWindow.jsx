@@ -14,12 +14,14 @@ const ChatWindow = ({
   onOpenDetails,
   onMessageSent,   // ← already destructured
 }) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [isAtBottom, setIsAtBottom] = useState(true);
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
 
   const phoneNumber = conversation?.customer_phone_number || conversation?.phone || '';
+  const canSend = userRole === 'org_admin' || conversation?.assigned_agent_id === user?.id;
+
 
   useEffect(() => {
     if (isAtBottom) {
@@ -117,7 +119,7 @@ const ChatWindow = ({
 
       <div className="border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
         {/* ✅ Pass onMessageSent to MessageInput */}
-        <MessageInput onSend={onSend} onMessageSent={onMessageSent} />
+        <MessageInput onSend={onSend} onMessageSent={onMessageSent} disabled={!canSend} />
       </div>
 
       {!isAtBottom && messages.length > 0 && (

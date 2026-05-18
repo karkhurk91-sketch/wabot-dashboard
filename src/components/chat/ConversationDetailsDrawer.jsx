@@ -198,7 +198,7 @@ const ConversationDetailsDrawer = ({
                       <option value="">Select agent…</option>
                       {agents.map((a) => (
                         <option key={a.id} value={a.id}>
-                          {a.name || a.email} ({a.role})
+                          {a.email || a.full_name} ({a.role})
                         </option>
                       ))}
                     </select>

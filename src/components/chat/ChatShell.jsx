@@ -97,6 +97,7 @@ const ChatShell = () => {
     [hasMoreMessages, loadMessages, messagesLoading, selectedConversation]
   );
 
+
   const handleSend = useCallback(
     async (text, formData, onUploadProgress) => {
       if (!selectedConversation) return null;
@@ -186,9 +187,16 @@ const ChatShell = () => {
               tags={tags}
               userRole="org_admin"
               onModeChange={async (mode) => {
-                if (!selectedConversation) return;
-                await toggleMode(selectedConversation.id, mode);
-              }}
+                  if (!selectedConversation) return;
+                  await toggleMode(selectedConversation.id, mode);
+                  
+                  await loadConversations();
+                  // Also update the selected conversation in context if needed
+                  const updated = conversations.find(c => c.id === selectedConversation.id);
+                  if (updated) dispatch({ type: 'SET_SELECTED_CONVERSATION', payload: updated });
+                }}
+
+
               onTransfer={() => setDrawerOpen(true)}
               onOpenDrawer={() => setDrawerOpen(true)}
               onToggleDarkMode={darkMode.toggleDarkMode}
