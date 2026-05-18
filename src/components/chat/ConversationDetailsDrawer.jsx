@@ -14,6 +14,7 @@ const ConversationDetailsDrawer = ({
   onCreateOrgTag,
   onAssignAgent,
   onUnassignAgent,
+  onRefreshConversation,
 }) => {
   const noteList = Array.isArray(notes) ? notes : [];
   const tagList = Array.isArray(tags) ? tags : [];
@@ -24,22 +25,40 @@ const ConversationDetailsDrawer = ({
   const [agentId, setAgentId] = useState('');
   const [loadingMeta, setLoadingMeta] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const convId = conversation?.id;
 
+  // Fetch agents and tags when drawer opens
   useEffect(() => {
     if (!open || !convId) return;
     let cancelled = false;
     setLoadingMeta(true);
+    setError(null);
     (async () => {
       try {
+        console.log('Fetching agents and organization tags...');
         const [tagsRes, agentsRes] = await Promise.all([
-          chatApi.listOrgTags().catch(() => ({ data: [] })),
-          chatApi.listAgents().catch(() => ({ data: [] })),
+          chatApi.listOrgTags().catch(err => {
+            console.error('Failed to fetch org tags:', err);
+            return { data: [] };
+          }),
+          chatApi.listAgents().catch(err => {
+            console.error('Failed to fetch agents:', err);
+            return { data: [] };
+          }),
         ]);
         if (cancelled) return;
         setOrgTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-        setAgents(Array.isArray(agentsRes.data) ? agentsRes.data : []);
+        const agentsData = Array.isArray(agentsRes.data) ? agentsRes.data : [];
+        setAgents(agentsData);
+        console.log('Agents loaded:', agentsData);
+        if (agentsData.length === 0) {
+          setError('No agents found. Please add agents (users with role "organization" or "team_member").');
+        }
+      } catch (err) {
+        console.error('Unexpected error in drawer data fetch:', err);
+        setError('Failed to load agents or tags');
       } finally {
         if (!cancelled) setLoadingMeta(false);
       }
@@ -54,6 +73,7 @@ const ConversationDetailsDrawer = ({
       setNewNote('');
       setNewTagName('');
       setAgentId('');
+      setError(null);
     }
   }, [open, convId]);
 
@@ -64,8 +84,10 @@ const ConversationDetailsDrawer = ({
     if (!convId || !newNote.trim() || readOnly) return;
     setSaving(true);
     try {
-      const ok = await onAddNote(convId, newNote);
-      if (ok) setNewNote('');
+      await onAddNote(convId, newNote);
+      setNewNote('');
+    } catch (err) {
+      console.error('Add note failed:', err);
     } finally {
       setSaving(false);
     }
@@ -82,6 +104,8 @@ const ConversationDetailsDrawer = ({
         const res = await chatApi.listOrgTags();
         setOrgTags(Array.isArray(res.data) ? res.data : []);
       }
+    } catch (err) {
+      console.error('Create and attach tag failed:', err);
     } finally {
       setSaving(false);
     }
@@ -93,20 +117,30 @@ const ConversationDetailsDrawer = ({
     try {
       await onAssignAgent(convId, agentId);
       setAgentId('');
+      if (onRefreshConversation) await onRefreshConversation();
+      alert('Agent assigned successfully');
+    } catch (err) {
+      console.error('Assign failed:', err);
+      alert(err.response?.data?.detail || 'Failed to assign agent');
     } finally {
       setSaving(false);
     }
-  }, [convId, agentId, onAssignAgent, readOnly]);
+  }, [convId, agentId, onAssignAgent, readOnly, onRefreshConversation]);
 
   const handleUnassign = useCallback(async () => {
     if (!convId || readOnly) return;
     setSaving(true);
     try {
       await onUnassignAgent(convId);
+      if (onRefreshConversation) await onRefreshConversation();
+      alert('Agent unassigned successfully');
+    } catch (err) {
+      console.error('Unassign failed:', err);
+      alert(err.response?.data?.detail || 'Failed to unassign agent');
     } finally {
       setSaving(false);
     }
-  }, [convId, onUnassignAgent, readOnly]);
+  }, [convId, onUnassignAgent, readOnly, onRefreshConversation]);
 
   if (!open) return null;
 
@@ -146,6 +180,8 @@ const ConversationDetailsDrawer = ({
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Assigned agent</h3>
             {loadingMeta ? (
               <p className="mt-2 text-sm text-slate-500">Loading…</p>
+            ) : error ? (
+              <p className="mt-2 text-sm text-red-500">{error}</p>
             ) : (
               <>
                 <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">

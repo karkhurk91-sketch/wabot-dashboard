@@ -221,6 +221,7 @@ const ChatShell = () => {
         onCreateOrgTag={createOrgTag}
         onAssignAgent={assignAgent}
         onUnassignAgent={unassignAgent}
+        onRefreshConversation={loadConversations} 
       />
 
       {error && (
