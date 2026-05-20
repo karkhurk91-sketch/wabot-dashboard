@@ -38,13 +38,13 @@ const Sidebar = () => {
     { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
     { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
     { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
-    { path: '/channels', name: 'Channels', icon: '🔌', permission: 'manage_channels' }
   ];
 
   // Settings sub‑items (Team Management only for org_admin)
   const baseSettingsSubItems = [
     { path: '/profile', name: 'Profile', icon: '👤' },
-    { path: '/api-keys', name: 'API Keys', icon: '🔑' },
+    { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
+    { path: '/channels', name: 'API Keys', icon: '🔑' },
     { path: '/integrations', name: 'Integrations', icon: '🔌' },
     { path: '/notifications', name: 'Notifications', icon: '🔔' },
     { path: '/security', name: '2FA & Security', icon: '🛡️' }

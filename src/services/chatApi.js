@@ -55,3 +55,7 @@ export const markConversationAsRead = (id) => api.put(`/api/conversations/${id}/
 export const getAssignmentHistory = (id) => api.get(`/api/conversations/${id}/assignment-history`);
 export const updateConversationCustomFields = (id, customFields) => api.patch(`/api/conversations/${id}/custom-fields`, { custom_fields: customFields });
 export const updateCustomerOptIn = (id, optIn) => api.put(`/api/customers/${id}/opt-in`, { opt_in: optIn });
+export const fetchCustomFieldDefs = () => api.get('/api/conversations/custom-fields-definitions');
+export const createCustomFieldDef = (data) => api.post('/api/conversations/custom-fields-definitions', data);
+export const updateCustomFieldDef = (id, data) => api.patch(`/api/conversations/custom-fields-definitions/${id}`, data);
+export const deleteCustomFieldDef = (id) => api.delete(`/api/conversations/custom-fields-definitions/${id}`);

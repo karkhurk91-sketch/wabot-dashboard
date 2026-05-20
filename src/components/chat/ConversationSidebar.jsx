@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import { listAgents, getAssignmentHistory, updateConversationCustomFields, updateCustomerOptIn, listOrgTags } from '../../services/chatApi';
 
 const ConversationSidebar = ({
@@ -25,11 +26,26 @@ const ConversationSidebar = ({
   const [assignmentHistory, setAssignmentHistory] = useState([]);
   const [customFields, setCustomFields] = useState(conversation?.custom_fields || {});
   const [optIn, setOptIn] = useState(conversation?.customer_opt_in || false);
+  const [customFieldDefs, setCustomFieldDefs] = useState([]); // dynamic definitions
 
   const convId = conversation?.id;
   const currentReplyMode = conversation?.reply_mode || 'human';
 
-  // Fetch agents, tags, and assignment history
+  // Fetch custom field definitions
+  useEffect(() => {
+    if (!convId) return;
+    const fetchDefs = async () => {
+      try {
+        const res = await api.get('/api/conversations/custom-fields-definitions');
+        setCustomFieldDefs(res.data);
+      } catch (err) {
+        console.error('Failed to fetch custom field definitions', err);
+      }
+    };
+    fetchDefs();
+  }, [convId]);
+
+  // Fetch agents, tags, assignment history
   useEffect(() => {
     if (!convId) return;
     let cancelled = false;
@@ -42,12 +58,9 @@ const ConversationSidebar = ({
           getAssignmentHistory(convId).catch(() => ({ data: [] })),
         ]);
         if (cancelled) return;
-        // Ensure we always set arrays
         setOrgTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-        console.log('Agents response:', agentsRes.data);
         setAgents(Array.isArray(agentsRes.data) ? agentsRes.data : []);
-        const historyData = Array.isArray(historyRes.data) ? historyRes.data : [];
-        setAssignmentHistory(historyData);
+        setAssignmentHistory(historyRes.data || []);
       } catch (err) {
         console.error('Error loading sidebar data', err);
         setAgents([]);
@@ -143,8 +156,8 @@ const ConversationSidebar = ({
     }
   };
 
-  const handleCustomFieldChange = async (key, value) => {
-    const newFields = { ...customFields, [key]: value };
+  const handleCustomFieldChange = async (fieldName, value) => {
+    const newFields = { ...customFields, [fieldName]: value };
     setCustomFields(newFields);
     try {
       await updateConversationCustomFields(convId, newFields);
@@ -162,6 +175,57 @@ const ConversationSidebar = ({
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Update opt-in failed', err);
+    }
+  };
+
+  // Render input for dynamic custom field
+  const renderCustomFieldInput = (def) => {
+    const value = customFields[def.field_name] || '';
+    const onChange = (val) => handleCustomFieldChange(def.field_name, val);
+    switch (def.field_type) {
+      case 'text':
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border rounded p-1 text-sm"
+            placeholder={def.field_label}
+          />
+        );
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border rounded p-1 text-sm"
+          />
+        );
+      case 'date':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border rounded p-1 text-sm"
+          />
+        );
+      case 'select':
+        return (
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border rounded p-1 text-sm"
+          >
+            <option value="">Select</option>
+            {def.field_options.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        );
+      default:
+        return null;
     }
   };
 
@@ -198,7 +262,6 @@ const ConversationSidebar = ({
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                   >
                     <option value="">Select agent…</option>
-                    {agents.length === 0 && <option disabled>No agents available</option>}
                     {agents.map(a => (
                       <option key={a.id} value={a.id}>{a.name || a.email} ({a.role})</option>
                     ))}
@@ -343,7 +406,7 @@ const ConversationSidebar = ({
           <p className="text-sm font-semibold text-gray-700 mb-2">Assignment History</p>
           <div className="space-y-1 text-xs text-gray-500 max-h-32 overflow-y-auto">
             {assignmentHistory.length === 0 && <p>No history</p>}
-            {Array.isArray(assignmentHistory) && assignmentHistory.map(h => (
+            {assignmentHistory.map(h => (
               <p key={h.id}>
                 {h.assigned_to ? `Assigned to ${h.assigned_to}` : 'Unassigned'} by {h.assigned_by} • {new Date(h.assigned_at).toLocaleString()}
               </p>
@@ -351,44 +414,30 @@ const ConversationSidebar = ({
           </div>
         </div>
 
-        {/* Custom Fields (Lead Status, Property Name, Opt-in) */}
-        <div>
-          <p className="text-sm font-semibold text-gray-700 mb-2">Custom Fields</p>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-500">Lead Status</label>
-              <select
-                value={customFields.lead_status || ''}
-                onChange={(e) => handleCustomFieldChange('lead_status', e.target.value)}
-                className="w-full border rounded p-1 text-sm"
-              >
-                <option value="">Select</option>
-                <option value="new">New</option>
-                <option value="contacted">Contacted</option>
-                <option value="meeting_done">Meeting Done</option>
-                <option value="converted">Converted</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Property Name</label>
-              <input
-                type="text"
-                value={customFields.property_name || ''}
-                onChange={(e) => handleCustomFieldChange('property_name', e.target.value)}
-                className="w-full border rounded p-1 text-sm"
-                placeholder="e.g., 1BHK in Andheri"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Opt-in</label>
-              <button
-                onClick={handleOptInToggle}
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs ${optIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}
-              >
-                {optIn ? 'Opted In' : 'Opted Out'}
-              </button>
+        {/* Dynamic Custom Fields */}
+        {customFieldDefs.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">Custom Fields</p>
+            <div className="space-y-3">
+              {customFieldDefs.map(def => (
+                <div key={def.id}>
+                  <label className="text-xs text-gray-500">{def.field_label}</label>
+                  {renderCustomFieldInput(def)}
+                </div>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* Opt-in (from customers table) */}
+        <div>
+          <p className="text-sm font-semibold text-gray-700 mb-2">Opt-in</p>
+          <button
+            onClick={handleOptInToggle}
+            className={`px-2 py-0.5 rounded-full text-xs ${optIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}
+          >
+            {optIn ? 'Opted In' : 'Opted Out'}
+          </button>
         </div>
       </div>
     </div>

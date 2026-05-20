@@ -43,6 +43,8 @@ import OrganizationChannels from './pages/OrganizationChannels';
 import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
 import WhatsAppTemplates from './pages/WhatsAppTemplates';
+import CustomFields from './pages/CustomFields';
+
 
 
 // Partner pages
@@ -98,6 +100,8 @@ function App() {
           <Route path="/campaigns/:id" element={<ProtectedRoute requiredRole="org_admin"><CampaignDetail /></ProtectedRoute>} />
           <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />
           <Route path="/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
+          <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
+
 
           {/* Partner routes */}
           <Route path="/admin/partners" element={<ProtectedRoute requiredRole="super_admin"><AdminPartners /></ProtectedRoute>} />
