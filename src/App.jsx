@@ -31,6 +31,8 @@ import OrgDashboard from './pages/OrgDashboard';
 import Customers from './pages/Customers';
 import Conversations from './pages/Conversations';
 import Leads from './pages/Leads';
+import LeadSchemas from './pages/LeadSchemas';
+import LeadNurturing from './pages/LeadNurturing';
 import Broadcast from './pages/Broadcast';
 import AIConfig from './pages/AIConfig';
 import KnowledgeBase from './pages/KnowledgeBase';
@@ -88,6 +90,8 @@ function App() {
           <Route path="/customers" element={<ProtectedRoute requiredRole="org_admin"><Customers /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
           <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+          <Route path="/lead-schemas" element={<ProtectedRoute requiredRole="org_admin"><LeadSchemas /></ProtectedRoute>} />
+          <Route path="/nurturing" element={<ProtectedRoute requiredRole="org_admin"><LeadNurturing /></ProtectedRoute>} />
           <Route path="/broadcast" element={<ProtectedRoute requiredRole="org_admin"><Broadcast /></ProtectedRoute>} />
           <Route path="/ai-config" element={<ProtectedRoute requiredRole="org_admin"><AIConfig /></ProtectedRoute>} />
           <Route path="/knowledge-base" element={<ProtectedRoute requiredRole="org_admin"><KnowledgeBase /></ProtectedRoute>} />

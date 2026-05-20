@@ -30,6 +30,7 @@ const Sidebar = () => {
     { path: '/customers', name: 'Customers', icon: '👥', permission: 'manage_customers' },
     { path: '/campaigns', name: 'Campaigns', icon: '📢', permission: 'manage_campaigns' },
     { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
+    { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
     { path: '/conversations', name: 'Conversations', icon: '💬', permission: 'manage_conversations' },
     { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' },
@@ -38,6 +39,7 @@ const Sidebar = () => {
     { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
     { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
     { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
+    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
   ];
 
   // Settings sub‑items (Team Management only for org_admin)

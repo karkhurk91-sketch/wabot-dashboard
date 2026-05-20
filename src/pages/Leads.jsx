@@ -4,6 +4,7 @@ import api from '../services/api';
 const Leads = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState(null);
   const [search, setSearch] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,6 +18,8 @@ const Leads = () => {
     try {
       const res = await api.get('/api/leads');
       setLeads(res.data);
+      const analyticsRes = await api.get('/api/leads/analytics/summary');
+      setAnalytics(analyticsRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -36,11 +39,20 @@ const Leads = () => {
   };
 
   // Filtering
-  const filteredLeads = leads.filter(lead =>
-    (lead.customer_phone && lead.customer_phone.includes(search)) ||
-    (lead.interest && lead.interest.toLowerCase().includes(search.toLowerCase())) ||
-    (lead.service && lead.service.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredLeads = leads.filter(lead => {
+    const query = search.toLowerCase();
+    const dataString = lead.data ? JSON.stringify(lead.data).toLowerCase() : '';
+    return (
+      (lead.customer_phone && lead.customer_phone.includes(search)) ||
+      (lead.interest && lead.interest.toLowerCase().includes(query)) ||
+      (lead.service && lead.service.toLowerCase().includes(query)) ||
+      (lead.urgency && lead.urgency.toLowerCase().includes(query)) ||
+      (lead.intent && lead.intent.toLowerCase().includes(query)) ||
+      (lead.sentiment && lead.sentiment.toLowerCase().includes(query)) ||
+      (lead.lead_stage && lead.lead_stage.toLowerCase().includes(query)) ||
+      dataString.includes(query)
+    );
+  });
 
   // Sorting
   const sortedLeads = [...filteredLeads].sort((a, b) => {
@@ -69,12 +81,26 @@ const Leads = () => {
     }
   };
 
+  const renderLeadDataPreview = (data) => {
+    if (!data || typeof data !== 'object') return '-';
+    const items = Object.entries(data).slice(0, 3);
+    if (items.length === 0) return '-';
+    return items.map(([key, value]) => (
+      <div key={key} className="text-sm text-gray-600">
+        <span className="font-medium text-gray-800">{key}:</span> {String(value)}
+      </div>
+    ));
+  };
+
   const exportToCSV = () => {
-    const headers = ['Phone', 'Interest', 'Service', 'Status', 'Score', 'Created'];
+    const headers = ['Phone', 'Interest', 'Service', 'Urgency', 'Intent', 'Stage', 'Status', 'Score', 'Created'];
     const rows = filteredLeads.map(lead => [
       lead.customer_phone,
       lead.interest || '',
       lead.service || '',
+      lead.urgency || 'medium',
+      lead.intent || '',
+      lead.lead_stage || 'new',
       lead.status || '',
       lead.lead_score || 0,
       new Date(lead.created_at).toLocaleString(),
@@ -98,7 +124,7 @@ const Leads = () => {
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Search by phone, interest, service..."
+            placeholder="Search by phone, interest, service, urgency, intent, stage..."
             value={search}
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
             className="border rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -111,6 +137,27 @@ const Leads = () => {
           </button>
         </div>
       </div>
+
+      {analytics && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Total leads</p>
+            <p className="text-3xl font-semibold text-gray-900">{analytics.lead_count}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Average conversion</p>
+            <p className="text-3xl font-semibold text-gray-900">{Math.round((analytics.average_conversion_probability || 0) * 100)}%</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">High urgency</p>
+            <p className="text-3xl font-semibold text-gray-900">{analytics.urgency_counts?.high || 0}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Qualified leads</p>
+            <p className="text-3xl font-semibold text-gray-900">{analytics.stage_counts?.qualified || 0}</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -125,6 +172,21 @@ const Leads = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('service')}>
                   Service {sortConfig.key === 'service' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('urgency')}>
+                  Urgency {sortConfig.key === 'urgency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('intent')}>
+                  Intent {sortConfig.key === 'intent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('sentiment')}>
+                  Sentiment {sortConfig.key === 'sentiment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('lead_stage')}>
+                  Stage {sortConfig.key === 'lead_stage' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">
+                  Lead data
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onClick={() => requestSort('status')}>
                   Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
@@ -143,6 +205,11 @@ const Leads = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{lead.customer_phone}</td>
                   <td className="px-6 py-4">{lead.interest || '-'}</td>
                   <td className="px-6 py-4">{lead.service || '-'}</td>
+                  <td className="px-6 py-4">{lead.urgency || 'medium'}</td>
+                  <td className="px-6 py-4">{lead.intent || '-'}</td>
+                  <td className="px-6 py-4">{lead.sentiment || 'neutral'}</td>
+                  <td className="px-6 py-4">{lead.lead_stage || 'new'}</td>
+                  <td className="px-6 py-4">{renderLeadDataPreview(lead.data)}</td>
                   <td className="px-6 py-4">
                     <select
                       value={lead.status || 'new'}
@@ -169,7 +236,7 @@ const Leads = () => {
                  </tr>
               ))}
               {paginatedLeads.length === 0 && (
-                <tr><td colSpan="6" className="text-center py-8 text-gray-500">No leads found</td></tr>
+                <tr><td colSpan="10" className="text-center py-8 text-gray-500">No leads found</td></tr>
               )}
             </tbody>
           </table>

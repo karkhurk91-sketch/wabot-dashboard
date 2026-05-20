@@ -59,3 +59,19 @@ export const fetchCustomFieldDefs = () => api.get('/api/conversations/custom-fie
 export const createCustomFieldDef = (data) => api.post('/api/conversations/custom-fields-definitions', data);
 export const updateCustomFieldDef = (id, data) => api.patch(`/api/conversations/custom-fields-definitions/${id}`, data);
 export const deleteCustomFieldDef = (id) => api.delete(`/api/conversations/custom-fields-definitions/${id}`);
+// Lead nurturing API
+export const listNurturingSequences = () => api.get('/api/leads/nurturing/sequences');
+export const createNurturingSequence = (payload) => api.post('/api/leads/nurturing/sequences', payload);
+export const getNurturingSequence = (id) => api.get(`/api/leads/nurturing/sequences/${id}`);
+export const updateNurturingSequence = (id, payload) => api.put(`/api/leads/nurturing/sequences/${id}`, payload);
+export const deleteNurturingSequence = (id) => api.delete(`/api/leads/nurturing/sequences/${id}`);
+
+export const assignNurturingToLead = (leadId, sequenceId) => api.post(`/api/leads/${leadId}/nurturing/assign`, { sequence_id: sequenceId });
+export const unassignNurturingFromLead = (leadId) => api.post(`/api/leads/${leadId}/nurturing/unassign`);
+export const triggerNurturingForLead = (leadId) => api.post(`/api/leads/${leadId}/nurturing/trigger`);
+// Follow-up management
+export const scheduleFollowUp = (leadId, scheduledAtISO) => api.post(`/api/leads/${leadId}/followup/schedule`, { scheduled_at: scheduledAtISO });
+export const cancelFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/cancel`);
+export const triggerFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/trigger`);
+export const listFollowUps = (limit = 50, offset = 0) => api.get(`/api/leads/followups?limit=${limit}&offset=${offset}`);
+export const getLeadByConversation = (convId) => api.get(`/api/leads/conversation/${convId}`);
