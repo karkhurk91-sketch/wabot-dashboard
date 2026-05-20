@@ -31,6 +31,19 @@ const ConversationsContent = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredConversations, setFilteredConversations] = useState([]);
 
+  // Disable scrolling on the main element for this page only
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.classList.add('overflow-hidden');
+    }
+    return () => {
+      if (mainElement) {
+        mainElement.classList.remove('overflow-hidden');
+      }
+    };
+  }, []);
+
   useEffect(() => {
     loadConversations(filter);
     fetchCounts();
@@ -67,7 +80,6 @@ const ConversationsContent = () => {
     }
   };
 
-  // ✅ Unified send handler for text and media (matches MessageInput expectations)
   const handleSend = async (text, formData, onUploadProgress) => {
     if (!selectedConversation) return null;
     if (formData) {
@@ -84,7 +96,7 @@ const ConversationsContent = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
       <StatisticsBar counts={counts} activeFilter={filter} onFilterChange={setFilter} />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <ConversationList
           conversations={filteredConversations}
           activeId={selectedConversation?.id}
