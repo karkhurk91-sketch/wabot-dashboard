@@ -1,17 +1,133 @@
-import React, { Suspense } from 'react';
-import { ChatProvider } from '../context/ChatContext';
-import ErrorBoundary from '../components/Common/ErrorBoundary';
+import React, { useState, useEffect } from 'react';
+import { ChatProvider, useChat } from '../context/ChatContext';
+import { useChatData } from '../hooks/useChatData';
+import ConversationList from '../components/chat/ConversationList';
+import ChatWindow from '../components/chat/ChatWindow';
+import ConversationSidebar from '../components/chat/ConversationSidebar';
+import StatisticsBar from '../components/chat/StatisticsBar';
+import { getConversationCounts, markConversationAsRead } from '../services/chatApi';
 
-const ChatShell = React.lazy(() => import('../components/chat/ChatShell'));
+// Inner component that uses the context
+const ConversationsContent = () => {
+  const { state, dispatch } = useChat();
+  const { conversations, selectedConversation, messages, loading, notes, tags } = state;
+  const {
+    loadConversations,
+    selectConversation,
+    loadMessages,
+    sendText,
+    sendMedia,
+    addNote,
+    attachTag,
+    detachTag,
+    createOrgTag,
+    assignAgent,
+    unassignAgent,
+    toggleMode,
+  } = useChatData();
 
-const Conversations = () => (
-  <ErrorBoundary>
+  const [filter, setFilter] = useState('all');
+  const [counts, setCounts] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredConversations, setFilteredConversations] = useState([]);
+
+  useEffect(() => {
+    loadConversations(filter);
+    fetchCounts();
+  }, [filter]);
+
+  useEffect(() => {
+    if (searchTerm) {
+      setFilteredConversations(
+        conversations.filter(c =>
+          c.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.customer_phone_number?.includes(searchTerm)
+        )
+      );
+    } else {
+      setFilteredConversations(conversations);
+    }
+  }, [searchTerm, conversations]);
+
+  const fetchCounts = async () => {
+    try {
+      const res = await getConversationCounts();
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSelectConversation = async (conv) => {
+    await selectConversation(conv);
+    try {
+      await markConversationAsRead(conv.id);
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
+  };
+
+  // ✅ Unified send handler for text and media (matches MessageInput expectations)
+  const handleSend = async (text, formData, onUploadProgress) => {
+    if (!selectedConversation) return null;
+    if (formData) {
+      return sendMedia(selectedConversation.id, formData, onUploadProgress);
+    }
+    return sendText(selectedConversation.id, text, 'agent');
+  };
+
+  const handleLoadOlder = async () => {
+    if (!selectedConversation) return;
+    await loadMessages(selectedConversation.id);
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
+      <StatisticsBar counts={counts} activeFilter={filter} onFilterChange={setFilter} />
+      <div className="flex flex-1 overflow-hidden">
+        <ConversationList
+          conversations={filteredConversations}
+          activeId={selectedConversation?.id}
+          onSelect={handleSelectConversation}
+          searchTerm={searchTerm}
+          onSearch={setSearchTerm}
+          onCreateConversation={() => {}}
+        />
+        <ChatWindow
+          conversation={selectedConversation}
+          messages={messages}
+          loading={loading}
+          onSend={handleSend}
+          onLoadOlder={handleLoadOlder}
+        />
+        <ConversationSidebar
+          conversation={selectedConversation}
+          notes={notes}
+          tags={tags}
+          readOnly={false}
+          onAddNote={addNote}
+          onAttachTag={attachTag}
+          onDetachTag={detachTag}
+          onCreateOrgTag={createOrgTag}
+          onAssignAgent={assignAgent}
+          onUnassignAgent={unassignAgent}
+          onToggleMode={toggleMode}
+          onRefresh={() => {
+            loadConversations();
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Main component that provides the ChatProvider
+const Conversations = () => {
+  return (
     <ChatProvider>
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 dark:bg-slate-950 dark:text-slate-300">Loading chat...</div>}>
-        <ChatShell />
-      </Suspense>
+      <ConversationsContent />
     </ChatProvider>
-  </ErrorBoundary>
-);
+  );
+};
 
 export default Conversations;

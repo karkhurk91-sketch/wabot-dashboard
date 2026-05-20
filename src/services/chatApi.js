@@ -1,5 +1,6 @@
 import api from './api';
 
+
 export const fetchConversations = () => api.get('/api/conversations');
 
 export const createConversation = (phoneNumber) =>
@@ -46,3 +47,11 @@ export const attachConversationTag = (convId, tagId) =>
 
 export const detachConversationTag = (convId, tagId) =>
   api.delete(`/api/conversations/${convId}/tags/${tagId}`);
+
+// Add these to your existing chatApi.js
+export const getConversationCounts = () => api.get('/api/conversations/counts');
+export const markConversationAsRead = (id) => api.put(`/api/conversations/${id}/mark-read`);
+// Add these to your existing chatApi.js
+export const getAssignmentHistory = (id) => api.get(`/api/conversations/${id}/assignment-history`);
+export const updateConversationCustomFields = (id, customFields) => api.patch(`/api/conversations/${id}/custom-fields`, { custom_fields: customFields });
+export const updateCustomerOptIn = (id, optIn) => api.put(`/api/customers/${id}/opt-in`, { opt_in: optIn });

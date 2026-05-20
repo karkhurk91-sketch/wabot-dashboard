@@ -1,128 +1,63 @@
-import React, { useState, useEffect } from 'react';
+// src/components/chat/ConversationList.jsx
+import React from 'react';
 
-const ConversationList = ({
-  conversations = [],
-  activeId,
-  onSelect,
-  searchTerm = '',
-  onSearch,
-  onCreateConversation,
-}) => {
-  const [localSearch, setLocalSearch] = useState(searchTerm);
-  const [newPhone, setNewPhone] = useState('');
-
-  useEffect(() => {
-    setLocalSearch(searchTerm);
-  }, [searchTerm]);
-
-  const filtered = conversations.filter((conv) => {
-    const name = (conv?.customer_name || conv?.name || '').toLowerCase();
-    const phone = (conv?.customer_phone_number || conv?.phone || '').toLowerCase();
-    return name.includes(localSearch.toLowerCase()) || phone.includes(localSearch.toLowerCase());
-  });
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setLocalSearch(value);
-    onSearch?.(value);
-  };
-
-  const handleCreate = async () => {
-    if (!newPhone.trim()) return;
-    await onCreateConversation?.(newPhone.trim());
-    setNewPhone('');
-  };
-
+const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSearch, onCreateConversation }) => {
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-950">
-      <div className="px-4 py-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent chats</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{filtered.length} threads</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              value={localSearch}
-              onChange={handleSearchChange}
-              placeholder="Search by name or phone"
-              className="w-full rounded-full border border-slate-200 bg-slate-100 py-3 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setLocalSearch('');
-                onSearch?.('');
-              }}
-              className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2">
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
+      <div className="p-3 border-b">
+        <div className="relative">
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
           <input
-            value={newPhone}
-            onChange={(e) => setNewPhone(e.target.value)}
-            placeholder="Start chat with phone"
-            className="w-full rounded-full border border-slate-200 bg-slate-100 py-3 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            type="text"
+            placeholder="Search by name or phone"
+            value={searchTerm}
+            onChange={(e) => onSearch(e.target.value)}
+            className="w-full bg-gray-100 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-            disabled={!newPhone.trim()}
-          >
-            New
-          </button>
         </div>
+        <button
+          onClick={onCreateConversation}
+          className="mt-2 text-sm text-emerald-600 w-full text-left hover:text-emerald-800"
+        >
+          + Start chat with phone
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <div className="p-6 text-center text-slate-500 dark:text-slate-400">No conversations found</div>
-        ) : (
-          filtered.map((conv) => {
-            const isActive = activeId === conv.id;
-            const displayPhone = conv.customer_phone_number || conv.phone || 'No phone';
-            return (
-              <button
-                key={conv.id}
-                type="button"
-                onClick={() => onSelect(conv)}
-                className={`w-full text-left transition ${
-                  isActive ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-900'
-                }`}
-              >
-                <div className="flex items-center gap-3 px-4 py-4">
-                  <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-semibold">
-                    {(conv.customer_name || conv.name || displayPhone || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {conv.customer_name || conv.name || 'Unknown'}
-                        </p>
-                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {displayPhone}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                          Mode: <span className="capitalize">{conv.reply_mode || 'human'}</span>
-                        </p>
-                      </div>
-                      <span className="text-xs text-slate-400 dark:text-slate-500">
-                        {conv.lastMessageTime || ''}
-                      </span>
-                    </div>
-                    <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
-                      {conv.lastMessage || 'No messages yet'}
-                    </p>
-
-                  </div>
-                </div>
-              </button>
-            );
-          })
+        {conversations.map(conv => (
+          <div
+            key={conv.id}
+            onClick={() => onSelect(conv)}
+            className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-gray-50 transition ${
+              activeId === conv.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : ''
+            }`}
+          >
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+              {conv.customer_name?.charAt(0) || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-800 truncate">{conv.customer_name || 'Unknown'}</span>
+                <span className="text-xs text-gray-400">
+                  {conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 truncate">{conv.last_message?.text || 'No messages yet'}</p>
+              <div className="flex items-center gap-2 mt-1 text-xs">
+                {conv.unread_count > 0 && (
+                  <span className="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[10px]">{conv.unread_count}</span>
+                )}
+                {conv.sla_status === 'breached' && (
+                  <span className="text-red-500">⚠️ SLA breached</span>
+                )}
+                {conv.assigned_agent_name && (
+                  <span className="text-gray-400">Agent: {conv.assigned_agent_name}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        {conversations.length === 0 && (
+          <div className="p-4 text-center text-gray-400">No conversations</div>
         )}
       </div>
     </div>
