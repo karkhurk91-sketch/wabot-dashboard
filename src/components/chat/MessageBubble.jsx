@@ -1,15 +1,20 @@
 import React, { memo } from 'react';
-import { formatFileSize, getMediaLabel, getStatusIcon, isMediaMessage } from '../../utils/chatUtils';
+import { formatFileSize, getMediaLabel, isMediaMessage } from '../../utils/chatUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const MessageBubble = ({ message, isOwn }) => {
   const bodyText = message.text ?? message.content ?? '';
+  
   const bubbleClass = isOwn
-    ? 'bg-emerald-50 text-slate-900 dark:bg-emerald-900/20 dark:text-white'
-    : 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100';
+    ? 'bg-[#dcf8c5] text-gray-800'
+    : 'bg-white text-gray-800';
 
-  // Helper to get absolute media URL
+  const alignmentClass = isOwn ? 'justify-end' : 'justify-start';
+  const cornerClass = isOwn
+    ? 'rounded-2xl rounded-br-md'
+    : 'rounded-2xl rounded-bl-md';
+
   const getAbsoluteMediaUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
@@ -17,42 +22,60 @@ const MessageBubble = ({ message, isOwn }) => {
   };
 
   const absoluteMediaUrl = getAbsoluteMediaUrl(message.media_url);
+  
+  // Determine tick based on status
+  const status = message.status || (isOwn ? 'sent' : null);
+  let tick = '';
+  let tickColor = 'text-gray-500';
+  if (isOwn) {
+    if (status === 'read') {
+      tick = '✓✓';
+      tickColor = 'text-blue-500';
+    } else if (status === 'delivered') {
+      tick = '✓✓';
+      tickColor = 'text-gray-500';
+    } else {
+      tick = '✓';
+      tickColor = 'text-gray-500';
+    }
+  }
+  
+  const timeString = message.created_at
+    ? new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
 
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-xl rounded-3xl px-4 py-3 shadow-sm ${bubbleClass}`}>
-        <div className="mb-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between gap-2">
-          <span>{isOwn ? 'You' : 'Customer'}</span>
-          {isOwn && <span>{getStatusIcon(message.status)}</span>}
-        </div>
-        {isMediaMessage(message.message_type) ? (
-          <div className="space-y-2">
-            {!absoluteMediaUrl ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                Media attachment is uploading or unavailable.
-              </div>
-            ) : null}
+    <div className={`flex ${alignmentClass} px-2 mb-1`}>
+      <div className={`max-w-[70%] ${cornerClass} px-3 py-2 shadow-sm ${bubbleClass}`}>
+        {isMediaMessage(message.message_type) && (
+          <div className="mb-2">
+            {!absoluteMediaUrl && (
+              <div className="text-sm text-gray-500 italic">Media attachment is uploading or unavailable.</div>
+            )}
             {message.message_type === 'image' && absoluteMediaUrl && (
-              <img src={absoluteMediaUrl} alt="attachment" className="rounded-xl object-contain max-h-72 w-full" />
+              <img src={absoluteMediaUrl} alt="attachment" className="rounded-xl max-h-64 w-auto object-contain" />
             )}
             {message.message_type === 'video' && absoluteMediaUrl && (
-              <video controls src={absoluteMediaUrl} className="rounded-xl max-h-72 w-full" />
+              <video controls src={absoluteMediaUrl} className="rounded-xl max-h-64 w-full" />
             )}
             {message.message_type === 'audio' && absoluteMediaUrl && (
               <audio controls src={absoluteMediaUrl} className="w-full" />
             )}
             {message.message_type === 'document' && absoluteMediaUrl && (
-              <a href={absoluteMediaUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                <span>📄 {message.media_file_name || getMediaLabel(message.message_type)}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{message.media_file_size ? formatFileSize(message.media_file_size) : ''}</span>
+              <a href={absoluteMediaUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                📄 {message.media_file_name || getMediaLabel(message.message_type)}
+                {message.media_file_size && <span className="text-xs text-gray-500">({formatFileSize(message.media_file_size)})</span>}
               </a>
             )}
-            {bodyText && <p className="break-words text-sm leading-6 text-slate-800 dark:text-slate-100">{bodyText}</p>}
           </div>
-        ) : (
-          <p className="break-words text-sm leading-6 text-slate-900 dark:text-slate-100">{bodyText}</p>
         )}
-        <div className="mt-2 text-right text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">{new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+
+        {bodyText && <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{bodyText}</div>}
+
+        <div className="flex items-center justify-end gap-1 mt-1">
+          <span className="text-[11px] text-gray-500">{timeString}</span>
+          {isOwn && tick && <span className={`text-[12px] ${tickColor}`}>{tick}</span>}
+        </div>
       </div>
     </div>
   );

@@ -84,7 +84,8 @@ const ChatWindow = ({
           const isOwn = Boolean(
             (msg.sender_id && userId && String(msg.sender_id) === String(userId)) ||
             msg.sender_type === 'outbound' ||
-            msg.direction === 'outbound'
+            msg.direction === 'outbound' ||
+            msg.direction === 'outgoing'
           );
           return <MessageBubble key={msg.id} message={msg} isOwn={isOwn} />;
         })}
