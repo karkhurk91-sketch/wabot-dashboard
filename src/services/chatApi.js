@@ -74,4 +74,4 @@ export const scheduleFollowUp = (leadId, scheduledAtISO) => api.post(`/api/leads
 export const cancelFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/cancel`);
 export const triggerFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/trigger`);
 export const listFollowUps = (limit = 50, offset = 0) => api.get(`/api/leads/followups?limit=${limit}&offset=${offset}`);
-export const getLeadByConversation = (convId) => api.get(`/api/leads/conversation/${convId}`);
+export const getLeadByConversation = (convId) => api.get(`/api/leads/by-conversation/${convId}`);
