@@ -1,11 +1,14 @@
 import React, { memo } from 'react';
 import { formatFileSize, getMediaLabel, isMediaMessage } from '../../utils/chatUtils';
+import { formatIST } from '../../utils/dateUtils';
+import { formatTimestampToIST, isTempMessage } from '../../utils/messageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const MessageBubble = ({ message, isOwn }) => {
   const bodyText = message.text ?? message.content ?? '';
-  
+  const isSending = message.status === 'sending' || isTempMessage(message);
+
   const bubbleClass = isOwn
     ? 'bg-[#dcf8c5] text-gray-800'
     : 'bg-white text-gray-800';
@@ -22,8 +25,8 @@ const MessageBubble = ({ message, isOwn }) => {
   };
 
   const absoluteMediaUrl = getAbsoluteMediaUrl(message.media_url);
-  
-  // Determine tick based on status
+
+  // Status ticks
   const status = message.status || (isOwn ? 'sent' : null);
   let tick = '';
   let tickColor = 'text-gray-500';
@@ -34,23 +37,32 @@ const MessageBubble = ({ message, isOwn }) => {
     } else if (status === 'delivered') {
       tick = '✓✓';
       tickColor = 'text-gray-500';
-    } else {
+    } else if (status === 'sent') {
       tick = '✓';
       tickColor = 'text-gray-500';
+    } else if (status === 'failed') {
+      tick = '✗';
+      tickColor = 'text-red-500';
+    } else if (status === 'sending') {
+      tick = '⏱';
+      tickColor = 'text-amber-500';
     }
   }
-  
-  const timeString = message.created_at
-    ? new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : '';
+
+  // Format timestamp to IST - use sort_timestamp if available, fallback to created_at
+  const timestamp = message.sort_timestamp || message.created_at;
+  const timeString = timestamp ? formatTimestampToIST(timestamp) : '';
 
   return (
-    <div className={`flex ${alignmentClass} px-2 mb-1`}>
-      <div className={`max-w-[70%] ${cornerClass} px-3 py-2 shadow-sm ${bubbleClass}`}>
+    <div className={`flex ${alignmentClass} px-2 mb-1 ${isSending ? 'opacity-75' : ''}`}>
+      <div className={`max-w-[70%] ${cornerClass} px-3 py-2 shadow-sm ${bubbleClass} ${isSending ? 'italic' : ''}`}>
         {isMediaMessage(message.message_type) && (
           <div className="mb-2">
             {!absoluteMediaUrl && (
-              <div className="text-sm text-gray-500 italic">Media attachment is uploading or unavailable.</div>
+              <div className="text-sm text-gray-500 italic flex items-center gap-2">
+                <span className="inline-block animate-spin">⏳</span>
+                Media is loading...
+              </div>
             )}
             {message.message_type === 'image' && absoluteMediaUrl && (
               <img src={absoluteMediaUrl} alt="attachment" className="rounded-xl max-h-64 w-auto object-contain" />
