@@ -6,3 +6,4 @@ export const addLeadNote = (id, note) => api.post(`/api/leads/${id}/notes`, { no
 export const bulkAssign = (leadIds, agentId) => api.post('/api/leads/bulk/assign', { lead_ids: leadIds, agent_id: agentId });
 export const getLeadByConversation = (conversationId) => 
   api.get(`/api/leads/by-conversation/${conversationId}`);
+export const triggerFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/trigger`);

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { getLeadByConversation, listAgents, getAssignmentHistory, updateConversationCustomFields, updateCustomerOptIn, listOrgTags, listNurturingSequences, assignNurturingToLead, unassignNurturingFromLead, triggerNurturingForLead } from '../../services/chatApi';
 import { scheduleFollowUp, cancelFollowUp, triggerFollowUp } from '../../services/chatApi';
+import NurturingProgress from './NurturingProgress';
+import BookingPanel from './BookingPanel';
 
 const ConversationSidebar = ({
   conversation,
@@ -683,6 +685,12 @@ const ConversationSidebar = ({
             {optIn ? 'Opted In' : 'Opted Out'}
           </button>
         </div>
+
+        {/* Nurturing Progress */}
+        {lead && lead.id && <NurturingProgress leadId={lead.id} />}
+
+        {/* Booking Panel */}
+        {lead && lead.id && <BookingPanel leadId={lead.id} />}
       </div>
     </div>
   );

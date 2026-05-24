@@ -51,6 +51,15 @@ const Leads = () => {
           setWsAlert(data);
           setTimeout(() => setWsAlert(null), 10000);
           fetchLeads();
+        } else if (data.type === 'lead_updated') {
+          // Update lead score in real-time from nurturing/scoring engine
+          setLeads(prevLeads =>
+            prevLeads.map(lead =>
+              lead.id === data.lead_id
+                ? { ...lead, lead_score: data.lead_score, updated_at: data.updated_at }
+                : lead
+            )
+          );
         }
       };
       wsRef.current.onerror = (err) => console.error('WebSocket error', err);
