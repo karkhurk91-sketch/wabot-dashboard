@@ -31,15 +31,14 @@ const Sidebar = () => {
     { path: '/campaigns', name: 'Campaigns', icon: '📢', permission: 'manage_campaigns' },
     { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
     { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
+    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
     { path: '/conversations', name: 'Conversations', icon: '💬', permission: 'manage_conversations' },
     { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' },
-    { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
     { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚', permission: 'manage_knowledge_base' },
-    { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
     { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
     { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
-    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
+    { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
   ];
 
   // Settings sub‑items (Team Management only for org_admin)
@@ -47,6 +46,7 @@ const Sidebar = () => {
     { path: '/profile', name: 'Profile', icon: '👤' },
     { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
     { path: '/channels', name: 'API Keys', icon: '🔑' },
+    { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
     { path: '/integrations', name: 'Integrations', icon: '🔌' },
     { path: '/notifications', name: 'Notifications', icon: '🔔' },
     { path: '/security', name: '2FA & Security', icon: '🛡️' }
