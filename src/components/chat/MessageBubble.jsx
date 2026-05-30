@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { formatFileSize, getMediaLabel, isMediaMessage } from '../../utils/chatUtils';
-import { formatIST } from '../../utils/dateUtils';
 import { formatTimestampToIST, isTempMessage } from '../../utils/messageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -49,7 +48,7 @@ const MessageBubble = ({ message, isOwn }) => {
     }
   }
 
-  // Format timestamp to IST - use sort_timestamp if available, fallback to created_at
+  // Use sort_timestamp if available, fallback to created_at
   const timestamp = message.sort_timestamp || message.created_at;
   const timeString = timestamp ? formatTimestampToIST(timestamp) : '';
 

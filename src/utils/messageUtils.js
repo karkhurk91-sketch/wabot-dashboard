@@ -26,28 +26,28 @@ export function sortMessages(messages) {
   });
 }
 
-/**
- * Format UTC timestamp to IST time string (e.g., "3:50 pm")
- * @param {string|Date} timestamp - ISO timestamp or Date object
- * @returns {string} Formatted time in IST
- */
 export function formatTimestampToIST(timestamp) {
   if (!timestamp) return '';
   
-  try {
-    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-    if (isNaN(date.getTime())) return '';
-    
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kolkata'
-    });
-  } catch (error) {
-    console.error('Error formatting timestamp:', error);
-    return '';
+  let date;
+  const tsStr = String(timestamp);
+  
+  // If the string already has a timezone offset (+05:30, -04:00, Z, etc.), use it as is
+  if (tsStr.includes('+') || tsStr.includes('-') || tsStr.includes('Z')) {
+    date = new Date(timestamp);
+  } else {
+    // No timezone info → assume UTC
+    date = new Date(timestamp + 'Z');
   }
+  
+  if (isNaN(date.getTime())) return '';
+  
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata'
+  });
 }
 
 /**
@@ -86,7 +86,7 @@ export function createTempMessage(content, direction = 'outbound') {
     status: 'sending',
     message_type: 'text',
     media_url: null,
-    is_temp: true  // Flag to identify temporary messages
+    is_temp: true
   };
 }
 
@@ -107,15 +107,12 @@ export function isTempMessage(message) {
  * @returns {Object} Merged message
  */
 export function mergeMessageUpdate(existingMsg, incomingMsg) {
-  // If incoming has whatsapp_message_id and existing is temp, replace it
   if (incomingMsg.whatsapp_message_id && isTempMessage(existingMsg)) {
     return {
       ...incomingMsg,
       is_temp: false
     };
   }
-  
-  // Otherwise merge, with incoming taking precedence
   return {
     ...existingMsg,
     ...incomingMsg,

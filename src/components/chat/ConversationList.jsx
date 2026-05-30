@@ -1,7 +1,21 @@
 // src/components/chat/ConversationList.jsx
 import React from 'react';
+import { formatTimestampToIST } from '../../utils/messageUtils';
 
 const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSearch, onCreateConversation }) => {
+  // Helper to get the last message text
+  const getLastMessageText = (conv) => {
+    const text = conv.last_message?.text || conv.last_message?.content || '';
+    if (!text) return 'No messages yet';
+    return text.length > 10 ? `${text.slice(0, 10)}...` : text;
+  };
+
+  // Helper to get the last message timestamp (use sort_timestamp if available)
+  const getLastMessageTime = (conv) => {
+    const timestamp = conv.last_message?.sort_timestamp || conv.last_message?.created_at || conv.last_message_at;
+    return timestamp ? formatTimestampToIST(timestamp) : '';
+  };
+
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
       <div className="p-3 border-b">
@@ -38,10 +52,12 @@ const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSea
               <div className="flex justify-between">
                 <span className="font-medium text-gray-800 truncate">{conv.customer_name || 'Unknown'}</span>
                 <span className="text-xs text-gray-400">
-                  {conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  {getLastMessageTime(conv)}
                 </span>
               </div>
-              <p className="text-sm text-gray-500 truncate">{conv.last_message?.text || 'No messages yet'}</p>
+              <p className="text-sm text-gray-500 truncate">
+                {getLastMessageText(conv)}
+              </p>
               <div className="flex items-center gap-2 mt-1 text-xs">
                 {conv.unread_count > 0 && (
                   <span className="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[10px]">{conv.unread_count}</span>
