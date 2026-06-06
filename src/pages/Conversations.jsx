@@ -149,11 +149,6 @@ const ConversationsContent = () => {
           leadData={leadData}
         />
       </div>
-      {leadData && (
-        <div className="absolute bottom-4 right-4 w-80 z-10 shadow-lg">
-          <AISummaryPanel lead={leadData} />
-        </div>
-      )}
     </div>
   );
 };
