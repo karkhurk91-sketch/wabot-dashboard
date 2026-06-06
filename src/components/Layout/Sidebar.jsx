@@ -32,6 +32,7 @@ const Sidebar = () => {
     { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
     { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
     { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
+    { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_ai_prompts' },
     { path: '/conversations', name: 'Conversations', icon: '💬', permission: 'manage_conversations' },
     { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' },

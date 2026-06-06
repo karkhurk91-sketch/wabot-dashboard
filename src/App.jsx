@@ -46,6 +46,7 @@ import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
 import WhatsAppTemplates from './pages/WhatsAppTemplates';
 import CustomFields from './pages/CustomFields';
+import ConversationFlows from './pages/ConversationFlows';
 
 
 
@@ -105,6 +106,7 @@ function App() {
           <Route path="/channels" element={<ProtectedRoute requiredRole="org_admin"><OrganizationChannels /></ProtectedRoute>} />
           <Route path="/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
           <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
+          <Route path="/conversation-flows" element={<ProtectedRoute requiredRole="org_admin"><ConversationFlows /></ProtectedRoute>} />
 
 
           {/* Partner routes */}
