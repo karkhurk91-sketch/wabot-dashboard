@@ -2,7 +2,7 @@
 import React from 'react';
 import { formatTimestampToIST } from '../../utils/messageUtils';
 
-const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSearch, onCreateConversation }) => {
+const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSearch }) => {
   // Helper to get the last message text or media label
   const getLastMessageText = (conv) => {
     const type = conv.last_message?.message_type;
@@ -33,12 +33,7 @@ const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSea
             className="w-full bg-gray-100 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none"
           />
         </div>
-        <button
-          onClick={onCreateConversation}
-          className="mt-2 text-sm text-emerald-600 w-full text-left hover:text-emerald-800"
-        >
-          + Start chat with phone
-        </button>
+
       </div>
       <div className="flex-1 overflow-y-auto">
         {conversations.map(conv => (
