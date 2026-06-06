@@ -29,7 +29,7 @@ const ConversationSidebar = ({
   const [assignmentHistory, setAssignmentHistory] = useState([]);
   const [customFields, setCustomFields] = useState(conversation?.custom_fields || {});
   const [optIn, setOptIn] = useState(conversation?.customer_opt_in || false);
-  const [customFieldDefs, setCustomFieldDefs] = useState([]); // dynamic definitions
+  const [customFieldDefs, setCustomFieldDefs] = useState([]);
   const [lead, setLead] = useState(null);
   const [leadSchema, setLeadSchema] = useState(null);
   const [leadStatus, setLeadStatus] = useState('');
@@ -38,6 +38,9 @@ const ConversationSidebar = ({
   const [assigningNurturing, setAssigningNurturing] = useState(false);
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false);
   const [followUpTime, setFollowUpTime] = useState('');
+  
+  // 🆕 State for collapsible lead section (default expanded)
+  const [isLeadExpanded, setIsLeadExpanded] = useState(true);
 
   const convId = conversation?.id;
   const currentReplyMode = conversation?.reply_mode || 'human';
@@ -248,7 +251,6 @@ const ConversationSidebar = ({
     }
   };
 
-  // Render input for dynamic custom field
   const renderCustomFieldInput = (def) => {
     const value = customFields[def.field_name] || '';
     const onChange = (val) => handleCustomFieldChange(def.field_name, val);
@@ -358,179 +360,185 @@ const ConversationSidebar = ({
           )}
         </div>
 
-        {/* Lead preview */}
+        {/* Lead preview - Collapsible Section */}
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div
+            className="flex items-center justify-between cursor-pointer mb-2"
+            onClick={() => setIsLeadExpanded(!isLeadExpanded)}
+          >
             <p className="text-sm font-semibold text-gray-700">Lead</p>
-            {lead && (
-              <span className={`text-xs font-semibold uppercase ${lead.status === 'converted' ? 'text-green-700' : 'text-gray-500'}`}>
-                {lead.status || 'new'}
-              </span>
-            )}
+            <span className="text-gray-500 text-lg">
+              {isLeadExpanded ? '▼' : '▶'}
+            </span>
           </div>
-          {loadingLead ? (
-            <p className="text-sm text-gray-400">Loading lead...</p>
-          ) : lead ? (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{lead.customer_name || lead.customer_phone}</p>
-                  <p className="text-xs text-gray-500">Lead score: {lead.lead_score ?? 0}</p>
-                </div>
-                <div className="w-24 bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div className="h-full bg-emerald-600" style={{ width: `${Math.min(Math.max(lead.lead_score || 0, 0), 100)}%` }} />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 pt-3 border-t border-gray-200">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Urgency</p>
-                  <p>{lead.urgency || 'medium'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Intent</p>
-                  <p>{lead.intent || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Sentiment</p>
-                  <p>{lead.sentiment || 'neutral'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Stage</p>
-                  <p>{lead.lead_stage || 'new'}</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {(leadSchema?.schema_fields || Object.keys(lead.data || {})).map((field) => {
-                  const name = field.field_name || field.name || field;
-                  const label = field.label || (typeof field === 'string' ? field : name);
-                  return (
-                    <div key={name} className="text-sm">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
-                      <div className="text-gray-800">{lead.data?.[name] ?? '-'}</div>
+          {isLeadExpanded && (
+            <>
+              {loadingLead ? (
+                <p className="text-sm text-gray-400">Loading lead...</p>
+              ) : lead ? (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{lead.customer_name || lead.customer_phone}</p>
+                      <p className="text-xs text-gray-500">Lead score: {lead.lead_score ?? 0}</p>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="w-24 bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div className="h-full bg-emerald-600" style={{ width: `${Math.min(Math.max(lead.lead_score || 0, 0), 100)}%` }} />
+                    </div>
+                  </div>
 
-              <div className="pt-2 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Follow-up</p>
-                    <p>{lead.follow_up_scheduled_at ? new Date(lead.follow_up_scheduled_at).toLocaleString() : 'Not scheduled'}</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 pt-3 border-t border-gray-200">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Urgency</p>
+                      <p>{lead.urgency || 'medium'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Intent</p>
+                      <p>{lead.intent || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Sentiment</p>
+                      <p>{lead.sentiment || 'neutral'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Stage</p>
+                      <p>{lead.lead_stage || 'new'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Probability</p>
-                    <p>{typeof lead.conversion_probability === 'number' ? `${Math.round(lead.conversion_probability * 100)}%` : '-'}</p>
+
+                  <div className="space-y-2">
+                    {(leadSchema?.schema_fields || Object.keys(lead.data || {})).map((field) => {
+                      const name = field.field_name || field.name || field;
+                      const label = field.label || (typeof field === 'string' ? field : name);
+                      return (
+                        <div key={name} className="text-sm">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+                          <div className="text-gray-800">{lead.data?.[name] ?? '-'}</div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Status</label>
-                <select
-                  value={leadStatus || 'new'}
-                  onChange={(e) => handleLeadStatusChange(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="new">New</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="converted">Converted</option>
-                  <option value="lost">Lost</option>
-                </select>
-                {/* Lead Nurturing controls */}
-                <div className="mt-3">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Nurturing</p>
-                  {lead.active_nurturing_sequence_id ? (
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm">Assigned: {nurturingSequences.find(s => s.id === lead.active_nurturing_sequence_id)?.name || lead.active_nurturing_sequence_id}</div>
-                      <button
-                        onClick={async () => {
-                          setAssigningNurturing(true);
+
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-gray-500">Follow-up</p>
+                        <p>{lead.follow_up_scheduled_at ? new Date(lead.follow_up_scheduled_at).toLocaleString() : 'Not scheduled'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-gray-500">Probability</p>
+                        <p>{typeof lead.conversion_probability === 'number' ? `${Math.round(lead.conversion_probability * 100)}%` : '-'}</p>
+                      </div>
+                    </div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Status</label>
+                    <select
+                      value={leadStatus || 'new'}
+                      onChange={(e) => handleLeadStatusChange(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="new">New</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="converted">Converted</option>
+                      <option value="lost">Lost</option>
+                    </select>
+                    {/* Lead Nurturing controls */}
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Nurturing</p>
+                      {lead.active_nurturing_sequence_id ? (
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm">Assigned: {nurturingSequences.find(s => s.id === lead.active_nurturing_sequence_id)?.name || lead.active_nurturing_sequence_id}</div>
+                          <button
+                            onClick={async () => {
+                              setAssigningNurturing(true);
+                              try {
+                                await unassignNurturingFromLead(lead.id);
+                                setLead((prev) => prev ? { ...prev, active_nurturing_sequence_id: null, last_nurturing_step: 0 } : prev);
+                              } catch (err) { console.error(err); }
+                              setAssigningNurturing(false);
+                            }}
+                            className="text-xs px-2 py-1 rounded border border-red-300 text-red-600"
+                          >
+                            Unassign
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await triggerNurturingForLead(lead.id);
+                                if (onRefresh) onRefresh();
+                              } catch (err) { console.error(err); }
+                            }}
+                            className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
+                          >
+                            Trigger
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <select id="assign-nurturing" className="text-sm rounded border px-2 py-1">
+                            <option value="">Assign sequence…</option>
+                            {nurturingSequences.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={async (e) => {
+                              const sel = document.getElementById('assign-nurturing');
+                              const seqId = sel?.value;
+                              if (!seqId) return alert('Choose a sequence');
+                              setAssigningNurturing(true);
+                              try {
+                                await assignNurturingToLead(lead.id, seqId);
+                                setLead((prev) => prev ? { ...prev, active_nurturing_sequence_id: seqId, last_nurturing_step: 0 } : prev);
+                                if (onRefresh) onRefresh();
+                              } catch (err) { console.error(err); }
+                              setAssigningNurturing(false);
+                            }}
+                            className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
+                          >
+                            Assign
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Follow-up scheduling */}
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Follow-up</p>
+                      <div className="flex gap-2 items-center">
+                        <input type="datetime-local" value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                        <button onClick={async () => {
+                          if (!followUpTime || !lead) return alert('Choose a time');
+                          setSchedulingFollowUp(true);
                           try {
-                            await unassignNurturingFromLead(lead.id);
-                            setLead((prev) => prev ? { ...prev, active_nurturing_sequence_id: null, last_nurturing_step: 0 } : prev);
+                            const iso = new Date(followUpTime).toISOString();
+                            await scheduleFollowUp(lead.id, iso);
+                            setLead((prev) => prev ? { ...prev, follow_up_scheduled_at: iso } : prev);
+                            if (onRefresh) onRefresh();
+                          } catch (err) { console.error(err); alert('Failed'); }
+                          setSchedulingFollowUp(false);
+                        }} className="text-xs px-2 py-1 rounded bg-blue-600 text-white">Schedule</button>
+                        <button onClick={async () => {
+                          if (!lead) return;
+                          try {
+                            await cancelFollowUp(lead.id);
+                            setLead((prev) => prev ? { ...prev, follow_up_scheduled_at: null } : prev);
                           } catch (err) { console.error(err); }
-                          setAssigningNurturing(false);
-                        }}
-                        className="text-xs px-2 py-1 rounded border border-red-300 text-red-600"
-                      >
-                        Unassign
-                      </button>
-                      <button
-                        onClick={async () => {
+                        }} className="text-xs px-2 py-1 rounded border">Cancel</button>
+                        <button onClick={async () => {
+                          if (!lead) return;
                           try {
-                            await triggerNurturingForLead(lead.id);
+                            await triggerFollowUp(lead.id);
                             if (onRefresh) onRefresh();
                           } catch (err) { console.error(err); }
-                        }}
-                        className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
-                      >
-                        Trigger
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <select id="assign-nurturing" className="text-sm rounded border px-2 py-1">
-                        <option value="">Assign sequence…</option>
-                        {nurturingSequences.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={async (e) => {
-                          const sel = document.getElementById('assign-nurturing');
-                          const seqId = sel?.value;
-                          if (!seqId) return alert('Choose a sequence');
-                          setAssigningNurturing(true);
-                          try {
-                            await assignNurturingToLead(lead.id, seqId);
-                            setLead((prev) => prev ? { ...prev, active_nurturing_sequence_id: seqId, last_nurturing_step: 0 } : prev);
-                            if (onRefresh) onRefresh();
-                          } catch (err) { console.error(err); }
-                          setAssigningNurturing(false);
-                        }}
-                        className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
-                      >
-                        Assign
-                      </button>
-                    </div>
-                  )}
-                </div>
-                  {/* Follow-up scheduling */}
-                  <div className="mt-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Follow-up</p>
-                    <div className="flex gap-2 items-center">
-                      <input type="datetime-local" value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className="border rounded px-2 py-1 text-sm" />
-                      <button onClick={async () => {
-                        if (!followUpTime || !lead) return alert('Choose a time');
-                        setSchedulingFollowUp(true);
-                        try {
-                          const iso = new Date(followUpTime).toISOString();
-                          await scheduleFollowUp(lead.id, iso);
-                          setLead((prev) => prev ? { ...prev, follow_up_scheduled_at: iso } : prev);
-                          if (onRefresh) onRefresh();
-                        } catch (err) { console.error(err); alert('Failed'); }
-                        setSchedulingFollowUp(false);
-                      }} className="text-xs px-2 py-1 rounded bg-blue-600 text-white">Schedule</button>
-                      <button onClick={async () => {
-                        if (!lead) return;
-                        try {
-                          await cancelFollowUp(lead.id);
-                          setLead((prev) => prev ? { ...prev, follow_up_scheduled_at: null } : prev);
-                        } catch (err) { console.error(err); }
-                      }} className="text-xs px-2 py-1 rounded border">Cancel</button>
-                      <button onClick={async () => {
-                        if (!lead) return;
-                        try {
-                          await triggerFollowUp(lead.id);
-                          if (onRefresh) onRefresh();
-                        } catch (err) { console.error(err); }
-                      }} className="text-xs px-2 py-1 rounded bg-emerald-600 text-white">Send Now</button>
+                        }} className="text-xs px-2 py-1 rounded bg-emerald-600 text-white">Send Now</button>
+                      </div>
                     </div>
                   </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No lead extracted for this conversation yet.</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No lead extracted for this conversation yet.</p>
+              )}
+            </>
           )}
         </div>
 

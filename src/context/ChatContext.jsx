@@ -41,18 +41,28 @@ const chatReducer = (state, action) => {
       const newMsg = action.payload;
       let updatedMessages = [...state.messages];
       
-      // Check if this message has a whatsapp_message_id and matches a temp message
-      if (newMsg.whatsapp_message_id) {
-        const tempMsgIndex = updatedMessages.findIndex(msg => 
-          isTempMessage(msg) && msg.whatsapp_message_id === newMsg.whatsapp_message_id
-        );
-        if (tempMsgIndex !== -1) {
-          // Replace temp message with confirmed message
-          updatedMessages[tempMsgIndex] = mergeMessageUpdate(updatedMessages[tempMsgIndex], newMsg);
-          return { ...state, messages: sortMessages(updatedMessages) };
+      // Replace temp messages when confirmed message arrives
+      const tempMsgIndex = updatedMessages.findIndex(msg => {
+        if (!isTempMessage(msg)) return false;
+        if (msg.whatsapp_message_id && msg.whatsapp_message_id === newMsg.whatsapp_message_id) {
+          return true;
         }
+        if (newMsg.direction === 'outbound' && msg.direction === 'outbound' && msg.status === 'sending') {
+          if (msg.content && newMsg.content && msg.content === newMsg.content) {
+            return true;
+          }
+          if (msg.message_type && msg.message_type === newMsg.message_type && msg.media_file_name && msg.media_file_name === newMsg.media_file_name) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      if (tempMsgIndex !== -1) {
+        updatedMessages[tempMsgIndex] = mergeMessageUpdate(updatedMessages[tempMsgIndex], newMsg);
+        return { ...state, messages: sortMessages(updatedMessages) };
       }
-      
+
       // Check if message already exists by id
       const existingIndex = updatedMessages.findIndex(msg => msg.id === newMsg.id);
       if (existingIndex !== -1) {

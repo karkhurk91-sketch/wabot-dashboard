@@ -3,8 +3,12 @@ import React from 'react';
 import { formatTimestampToIST } from '../../utils/messageUtils';
 
 const ConversationList = ({ conversations, activeId, onSelect, searchTerm, onSearch, onCreateConversation }) => {
-  // Helper to get the last message text
+  // Helper to get the last message text or media label
   const getLastMessageText = (conv) => {
+    const type = conv.last_message?.message_type;
+    if (['image', 'video', 'audio', 'document'].includes(type)) {
+      return 'Media';
+    }
     const text = conv.last_message?.text || conv.last_message?.content || '';
     if (!text) return 'No messages yet';
     return text.length > 10 ? `${text.slice(0, 10)}...` : text;

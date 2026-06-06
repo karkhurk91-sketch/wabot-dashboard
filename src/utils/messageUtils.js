@@ -30,16 +30,16 @@ export function formatTimestampToIST(timestamp) {
   if (!timestamp) return '';
   
   let date;
-  const tsStr = String(timestamp);
-  
-  // If the string already has a timezone offset (+05:30, -04:00, Z, etc.), use it as is
-  if (tsStr.includes('+') || tsStr.includes('-') || tsStr.includes('Z')) {
-    date = new Date(timestamp);
+  const tsStr = String(timestamp).trim();
+  const hasTimezone = /Z$|[+-]\d{2}:\d{2}$|[+-]\d{4}$/.test(tsStr);
+
+  if (hasTimezone) {
+    date = new Date(tsStr);
   } else {
     // No timezone info → assume UTC
-    date = new Date(timestamp + 'Z');
+    date = new Date(`${tsStr}Z`);
   }
-  
+
   if (isNaN(date.getTime())) return '';
   
   return date.toLocaleTimeString('en-IN', {
