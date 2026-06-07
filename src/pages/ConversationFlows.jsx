@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchConversationFlow, updateConversationFlow } from '../services/organizationApi';
+import { fetchConversationFlow, updateConversationFlow, deleteConversationFlow } from '../services/organizationApi';
 
 const DEFAULT_FLOW = [
   { field: 'name', action: 'ask_name', required: true, prompt: 'May I know your name?', type: 'text' },
@@ -228,6 +228,25 @@ const ConversationFlows = () => {
     }
   };
 
+  const resetFlow = async () => {
+    if (!window.confirm('Reset this organization flow to the default buyer flow? This will remove any active custom flow.')) {
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    setErrors([]);
+    try {
+      await deleteConversationFlow(orgId, flowType);
+      await loadFlow();
+      setMessage({ type: 'success', text: 'Organization flow reset to default.' });
+    } catch (err) {
+      console.error('Failed to reset flow', err);
+      setMessage({ type: 'error', text: (err.response?.data?.detail) || err.message || 'Reset failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addStep = () => setSteps(prev => ([...prev, { field: '', action: '', prompt: '', type: 'text', required: true, options: [] }]));
   const removeStep = (idx) => setSteps(prev => prev.filter((_, i) => i !== idx));
   const updateStep = (idx, key, value) => setSteps(prev => prev.map((s, i) => {
@@ -371,9 +390,10 @@ const ConversationFlows = () => {
         <textarea rows={20} className="w-full border rounded p-3 font-mono text-sm" value={rawJson} onChange={(e) => setRawJson(e.target.value)} />
       )}
 
-      <div className="mt-4 flex gap-2">
-        <button onClick={saveFlow} className="bg-green-600 text-white px-4 py-2 rounded">Save Flow</button>
-        <button onClick={() => { setSteps([]); setRawJson('[]'); }} className="bg-gray-200 px-4 py-2 rounded">Clear</button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button onClick={saveFlow} disabled={loading} className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50">Save Flow</button>
+        <button onClick={() => { setSteps([]); setRawJson('[]'); }} disabled={loading} className="bg-gray-200 px-4 py-2 rounded disabled:opacity-50">Clear</button>
+        <button onClick={resetFlow} disabled={loading} className="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50">Reset to Default</button>
       </div>
 
       <div className="mt-6 text-sm text-gray-500">

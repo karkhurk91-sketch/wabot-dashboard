@@ -21,4 +21,7 @@ export const fetchConversationFlow = (orgId, flowType = 'buyer') =>
 export const updateConversationFlow = (orgId, flowType = 'buyer', data) =>
   api.put(`/api/organizations/${orgId}/conversation-flows/${flowType}`, data);
 
+export const deleteConversationFlow = (orgId, flowType = 'buyer') =>
+  api.delete(`/api/organizations/${orgId}/conversation-flows/${flowType}`);
+
 export default api;
