@@ -40,6 +40,7 @@ const Sidebar = () => {
     { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
     { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
     { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
+    { path: '/bot-builder', name: 'Bot Builder', icon: '📈', permission: 'view_analytics' },
   ];
 
   // Settings sub‑items (Team Management only for org_admin)

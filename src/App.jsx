@@ -58,6 +58,9 @@ import PartnerSignup from './pages/PartnerSignup';
 // Team Management
 import TeamManagement from './pages/TeamManagement';
 
+import BotBuilder from './pages/BotBuilder';
+
+
 function App() {
   return (
     <AuthProvider>
@@ -116,6 +119,9 @@ function App() {
 
           {/* Team Management – only for org_admin */}
           <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
+
+          <Route path="/bot-builder" element={<BotBuilder />} />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -563,6 +563,44 @@ const ConversationSidebar = ({
           </div>
         </div>
 
+        {/* Rule Engine State (only when in rule mode) */}
+        {conversation.reply_mode === 'rule' && conversation.rule_state && (
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">Rule Engine State</p>
+            <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Stage:</span>
+                <span className="font-medium">{conversation.rule_state.stage || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Awaiting field:</span>
+                <span className="font-medium">{conversation.rule_state.awaiting_field || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Confirmation pending:</span>
+                <span className="font-medium">
+                  {conversation.rule_state.confirmation_pending ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Completed fields:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {conversation.rule_state.completed_fields && 
+                   Object.keys(conversation.rule_state.completed_fields).length > 0 ? (
+                    Object.keys(conversation.rule_state.completed_fields).map(field => (
+                      <span key={field} className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">
+                        {field}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs">None</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tags */}
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-2">Tags</p>
