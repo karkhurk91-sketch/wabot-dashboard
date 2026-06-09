@@ -8,21 +8,36 @@ const BotBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [selectedBot, setSelectedBot] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [rawJsonMode, setRawJsonMode] = useState(false);
+  const [jsonError, setJsonError] = useState('');
+
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    config: JSON.stringify({
+    version: 1,
+    config: {
       fields: [
-        { name: 'name', question: 'What is your name?', type: 'text', required: true }
+        {
+          name: 'intent',
+          question: 'Are you looking to buy or rent?',
+          type: 'button',
+          required: true,
+          options: [
+            { id: 'buy', title: 'Buy' },
+            { id: 'rent', title: 'Rent' }
+          ]
+        }
       ],
-      confirmation: { enabled: true, message: 'Please confirm your details:' }
-    }, null, 2),
-    version: 1
+      confirmation: {
+        enabled: true,
+        message: 'Please confirm your details:',
+        confirm_label: 'Confirm',
+        change_label: 'Change'
+      }
+    }
   });
-  const [jsonError, setJsonError] = useState('');
-  const [templateId, setTemplateId] = useState('');
 
-  // Load bots on mount
   useEffect(() => {
     loadBots();
   }, []);
@@ -34,41 +49,110 @@ const BotBuilder = () => {
       setBots(res.data.items);
     } catch (err) {
       console.error(err);
-      alert('Failed to load bots');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load a template (copy config from another bot)
-  const loadTemplate = async () => {
-    if (!templateId) return;
-    const templateBot = bots.find(b => b.id === templateId);
-    if (!templateBot) return;
-    setFormData({
-      name: `${templateBot.name} (Copy)`,
-      description: templateBot.description || '',
-      config: JSON.stringify(templateBot.config, null, 2),
-      version: 1
-    });
-    setJsonError('');
+  // Field management
+  const addField = () => {
+    setFormData(prev => ({
+      ...prev,
+      config: {
+        ...prev.config,
+        fields: [
+          ...prev.config.fields,
+          { name: '', question: '', type: 'text', required: false, options: [] }
+        ]
+      }
+    }));
   };
 
-  const handleCreateOrUpdate = async (e) => {
-    e.preventDefault();
-    setJsonError('');
-    let config;
+  const removeField = (index) => {
+    const newFields = [...formData.config.fields];
+    newFields.splice(index, 1);
+    setFormData(prev => ({
+      ...prev,
+      config: { ...prev.config, fields: newFields }
+    }));
+  };
+
+  const updateField = (index, key, value) => {
+    const newFields = [...formData.config.fields];
+    newFields[index][key] = value;
+    setFormData(prev => ({
+      ...prev,
+      config: { ...prev.config, fields: newFields }
+    }));
+  };
+
+  const addOption = (fieldIndex) => {
+    const newFields = [...formData.config.fields];
+    if (!newFields[fieldIndex].options) newFields[fieldIndex].options = [];
+    newFields[fieldIndex].options.push({ id: '', title: '' });
+    setFormData(prev => ({
+      ...prev,
+      config: { ...prev.config, fields: newFields }
+    }));
+  };
+
+  const updateOption = (fieldIndex, optIndex, key, value) => {
+    const newFields = [...formData.config.fields];
+    newFields[fieldIndex].options[optIndex][key] = value;
+    setFormData(prev => ({
+      ...prev,
+      config: { ...prev.config, fields: newFields }
+    }));
+  };
+
+  const removeOption = (fieldIndex, optIndex) => {
+    const newFields = [...formData.config.fields];
+    newFields[fieldIndex].options.splice(optIndex, 1);
+    setFormData(prev => ({
+      ...prev,
+      config: { ...prev.config, fields: newFields }
+    }));
+  };
+
+  // Raw JSON handling
+  const [rawJson, setRawJson] = useState('');
+  useEffect(() => {
+    setRawJson(JSON.stringify(formData.config, null, 2));
+  }, [formData.config]);
+
+  const applyRawJson = () => {
     try {
-      config = typeof formData.config === 'string' ? JSON.parse(formData.config) : formData.config;
+      const parsed = JSON.parse(rawJson);
+      setFormData(prev => ({ ...prev, config: parsed }));
+      setJsonError('');
+      setRawJsonMode(false);
     } catch (err) {
-      setJsonError('Invalid JSON configuration');
+      setJsonError('Invalid JSON: ' + err.message);
+    }
+  };
+
+  // Save bot
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      alert('Bot name is required');
       return;
+    }
+    for (let i = 0; i < formData.config.fields.length; i++) {
+      const f = formData.config.fields[i];
+      if (!f.name || !f.question) {
+        alert(`Field ${i + 1} missing name or question`);
+        return;
+      }
+      if ((f.type === 'button' || f.type === 'list') && (!f.options || f.options.length === 0)) {
+        alert(`Field "${f.name}" has no options`);
+        return;
+      }
     }
 
     const payload = {
       name: formData.name,
       description: formData.description,
-      config: config,
+      config: formData.config,
       version: formData.version
     };
 
@@ -84,8 +168,51 @@ const BotBuilder = () => {
       loadBots();
     } catch (err) {
       console.error(err);
-      alert('Operation failed');
+      alert('Save failed');
     }
+  };
+
+  const resetForm = () => {
+    setSelectedBot(null);
+    setIsEditing(false);
+    setFormData({
+      name: '',
+      description: '',
+      version: 1,
+      config: {
+        fields: [
+          {
+            name: 'intent',
+            question: 'Are you looking to buy or rent?',
+            type: 'button',
+            required: true,
+            options: [
+              { id: 'buy', title: 'Buy' },
+              { id: 'rent', title: 'Rent' }
+            ]
+          }
+        ],
+        confirmation: {
+          enabled: true,
+          message: 'Please confirm your details:',
+          confirm_label: 'Confirm',
+          change_label: 'Change'
+        }
+      }
+    });
+    setRawJsonMode(false);
+  };
+
+  const editBot = (bot) => {
+    setSelectedBot(bot);
+    setFormData({
+      name: bot.name,
+      description: bot.description || '',
+      version: bot.version,
+      config: bot.config
+    });
+    setIsEditing(true);
+    setRawJsonMode(false);
   };
 
   const handleActivate = async (bot) => {
@@ -110,161 +237,212 @@ const BotBuilder = () => {
     }
   };
 
-  const editBot = (bot) => {
-    setSelectedBot(bot);
-    setFormData({
-      name: bot.name,
-      description: bot.description || '',
-      config: JSON.stringify(bot.config, null, 2),
-      version: bot.version
-    });
-    setIsEditing(true);
-  };
-
-  const resetForm = () => {
-    setSelectedBot(null);
-    setIsEditing(false);
-    setFormData({
-      name: '',
-      description: '',
-      config: JSON.stringify({
-        fields: [{ name: 'name', question: 'What is your name?', type: 'text', required: true }],
-        confirmation: { enabled: true, message: 'Please confirm your details:' }
-      }, null, 2),
-      version: 1
-    });
-    setJsonError('');
-    setTemplateId('');
-  };
-
-  // Filter bots that can be used as templates (all inactive bots, excluding the one being edited)
-  const availableTemplates = bots.filter(b => !b.is_active && (!selectedBot || b.id !== selectedBot.id));
-
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Bot Builder</h1>
-
-      {/* Form for Create/Edit */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Bot' : 'Create New Bot'}</h2>
-
-        {/* Template Loader (only when creating new bot) */}
-        {!isEditing && availableTemplates.length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-            <label className="block text-sm font-medium mb-1">Load from Template</label>
-            <div className="flex gap-2">
-              <select
-                className="flex-1 border rounded px-3 py-2"
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-              >
-                <option value="">-- Select a template --</option>
-                {availableTemplates.map(tpl => (
-                  <option key={tpl.id} value={tpl.id}>{tpl.name} (v{tpl.version})</option>
-                ))}
-              </select>
+    <div className="flex flex-col h-full">
+      {/* Two‑column layout inside main content */}
+      <div className="flex flex-1 min-h-0 gap-6">
+        
+        {/* LEFT COLUMN: Bot Editor (scrollable) */}
+        <div className="flex-1 overflow-y-auto bg-white rounded-lg shadow p-6">
+          {/* Toggle (Form / Raw JSON) */}
+          <div className="mb-6 flex justify-end">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Flow type:</span>
               <button
-                type="button"
-                onClick={loadTemplate}
-                disabled={!templateId}
-                className="bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                onClick={() => setRawJsonMode(false)}
+                className={`px-3 py-1 text-sm rounded-md ${!rawJsonMode ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
               >
-                Load
+                Form
+              </button>
+              <button
+                onClick={() => setRawJsonMode(true)}
+                className={`px-3 py-1 text-sm rounded-md ${rawJsonMode ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+              >
+                Raw JSON
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Load configuration from an existing bot as a starting point.</p>
           </div>
-        )}
 
-        <form onSubmit={handleCreateOrUpdate}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Bot Name</label>
-            <input
-              type="text"
-              required
-              className="w-full border rounded px-3 py-2"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
+          {/* Bot name & description */}
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bot Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="e.g., Real Estate Bot"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Optional"
+              />
+            </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              className="w-full border rounded px-3 py-2"
-              rows="2"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">JSON Configuration</label>
-            <textarea
-              className="w-full font-mono text-sm border rounded px-3 py-2"
-              rows="12"
-              value={formData.config}
-              onChange={(e) => setFormData({ ...formData, config: e.target.value })}
-            />
-            {jsonError && <p className="text-red-500 text-sm mt-1">{jsonError}</p>}
-            <p className="text-gray-500 text-xs mt-1">
-              Must contain "fields" array with name, question, type (text/button/list).
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              {isEditing ? 'Update Bot' : 'Create Bot'}
-            </button>
-            {isEditing && (
-              <button type="button" onClick={resetForm} className="bg-gray-300 px-4 py-2 rounded">
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
 
-      {/* Bot List (unchanged) */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <h2 className="text-xl font-semibold p-4 border-b">Existing Bots</h2>
-        {loading ? (
-          <p className="p-4">Loading...</p>
-        ) : bots.length === 0 ? (
-          <p className="p-4 text-gray-500">No bots yet. Create one above.</p>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          {rawJsonMode ? (
+            <div>
+              <textarea
+                value={rawJson}
+                onChange={(e) => setRawJson(e.target.value)}
+                rows={20}
+                className="w-full font-mono text-sm border rounded-md p-3"
+              />
+              {jsonError && <p className="text-red-500 text-sm mt-2">{jsonError}</p>}
+              <div className="mt-4 flex gap-2">
+                <button onClick={applyRawJson} className="bg-indigo-600 text-white px-4 py-2 rounded-md">
+                  Apply JSON
+                </button>
+                <button onClick={() => setRawJsonMode(false)} className="bg-gray-300 px-4 py-2 rounded-md">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                {formData.config.fields.map((field, idx) => (
+                  <div key={idx} className="border rounded-lg p-4 bg-gray-50 relative">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-md font-medium">Step {idx + 1}</h3>
+                      <button onClick={() => removeField(idx)} className="text-red-500 hover:text-red-700 text-sm">
+                        Remove
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600">Field name</label>
+                        <input
+                          type="text"
+                          value={field.name}
+                          onChange={(e) => updateField(idx, 'name', e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="e.g., budget"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600">Type</label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => updateField(idx, 'type', e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                        >
+                          <option value="text">Text</option>
+                          <option value="button">Button</option>
+                          <option value="list">List</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-600">Question / Prompt</label>
+                      <input
+                        type="text"
+                        value={field.question}
+                        onChange={(e) => updateField(idx, 'question', e.target.value)}
+                        className="w-full border rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="mb-3 flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={field.required || false}
+                        onChange={(e) => updateField(idx, 'required', e.target.checked)}
+                        className="mr-2"
+                      />
+                      <label className="text-sm text-gray-700">Required</label>
+                    </div>
+                    {(field.type === 'button' || field.type === 'list') && (
+                      <div className="mt-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Options</label>
+                        <div className="space-y-2">
+                          {(field.options || []).map((opt, optIdx) => (
+                            <div key={optIdx} className="flex gap-2 items-center">
+                              <input
+                                type="text"
+                                placeholder="ID (e.g., buy)"
+                                value={opt.id || ''}
+                                onChange={(e) => updateOption(idx, optIdx, 'id', e.target.value)}
+                                className="flex-1 border rounded px-2 py-1 text-sm"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Title (e.g., Buy)"
+                                value={opt.title || ''}
+                                onChange={(e) => updateOption(idx, optIdx, 'title', e.target.value)}
+                                className="flex-1 border rounded px-2 py-1 text-sm"
+                              />
+                              <button onClick={() => removeOption(idx, optIdx)} className="text-red-500 text-sm">
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button onClick={() => addOption(idx)} className="text-sm text-indigo-600 hover:text-indigo-800">
+                            + Add option
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-between">
+                <button onClick={addField} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">
+                  + Add Step
+                </button>
+                <div className="flex gap-2">
+                  <button onClick={resetForm} className="bg-gray-300 px-4 py-2 rounded-md">
+                    Cancel
+                  </button>
+                  <button onClick={handleSave} className="bg-indigo-600 text-white px-4 py-2 rounded-md">
+                    {isEditing ? 'Update Bot' : 'Create Bot'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: Existing Bots list (scrollable) */}
+        <div className="w-80 bg-white rounded-lg shadow p-4 overflow-y-auto flex-shrink-0">
+          <h2 className="font-semibold text-gray-800 mb-3 sticky top-0 bg-white pb-2 border-b">Existing Bots</h2>
+          {loading ? (
+            <p className="text-gray-400">Loading...</p>
+          ) : bots.length === 0 ? (
+            <p className="text-gray-400">No bots yet.</p>
+          ) : (
+            <ul className="space-y-3">
               {bots.map((bot) => (
-                <tr key={bot.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{bot.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{bot.version}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs ${bot.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {bot.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{new Date(bot.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                    <button onClick={() => editBot(bot)} className="text-blue-600 hover:underline">Edit</button>
-                    {!bot.is_active && (
-                      <button onClick={() => handleActivate(bot)} className="text-green-600 hover:underline">Activate</button>
-                    )}
-                    {!bot.is_active && (
-                      <button onClick={() => handleDelete(bot)} className="text-red-600 hover:underline">Delete</button>
-                    )}
-                   </td>
-                </tr>
+                <li key={bot.id} className="border rounded-lg p-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{bot.name}</p>
+                      <p className="text-xs text-gray-500">v{bot.version} • {new Date(bot.created_at).toLocaleDateString()}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs ${bot.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        {bot.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => editBot(bot)} className="text-blue-600 text-sm hover:underline">Edit</button>
+                      {!bot.is_active && (
+                        <button onClick={() => handleActivate(bot)} className="text-green-600 text-sm hover:underline">Activate</button>
+                      )}
+                      {!bot.is_active && (
+                        <button onClick={() => handleDelete(bot)} className="text-red-600 text-sm hover:underline">Delete</button>
+                      )}
+                    </div>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
-        )}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

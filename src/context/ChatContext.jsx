@@ -89,6 +89,21 @@ const chatReducer = (state, action) => {
       return { ...state, error: action.payload };
     case 'SET_TYPING':
       return { ...state, typing: action.payload };
+    
+    // ✅ NEW: Update conversation mode in both conversations list and selected conversation
+    case 'UPDATE_CONVERSATION_MODE':
+      return {
+        ...state,
+        conversations: state.conversations.map(conv =>
+          conv.id === action.payload.id
+            ? { ...conv, reply_mode: action.payload.reply_mode }
+            : conv
+        ),
+        selectedConversation: state.selectedConversation?.id === action.payload.id
+          ? { ...state.selectedConversation, reply_mode: action.payload.reply_mode }
+          : state.selectedConversation,
+      };
+    
     default:
       return state;
   }

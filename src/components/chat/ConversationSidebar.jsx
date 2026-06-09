@@ -542,11 +542,11 @@ const ConversationSidebar = ({
           )}
         </div>
 
-        {/* Reply Mode */}
+        {/* Reply Mode - Updated to include 'bot' mode */}
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-2">Reply Mode</p>
-          <div className="flex gap-2">
-            {['ai', 'human', 'rule'].map(mode => (
+          <div className="flex flex-wrap gap-2">
+            {['ai', 'human', 'rule', 'bot'].map(mode => (
               <button
                 key={mode}
                 onClick={() => handleModeChange(mode)}
@@ -557,10 +557,16 @@ const ConversationSidebar = ({
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 } disabled:opacity-50`}
               >
-                {mode}
+                {mode === 'bot' ? '🤖 Bot' : mode}
               </button>
             ))}
           </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {currentReplyMode === 'ai' && 'Legacy AI / orchestrated replies'}
+            {currentReplyMode === 'human' && 'No automatic replies – agent handles'}
+            {currentReplyMode === 'rule' && 'Hardcoded industry‑specific rule engine'}
+            {currentReplyMode === 'bot' && 'JSON‑driven generic bot (requires active config)'}
+          </p>
         </div>
 
         {/* Rule Engine State (only when in rule mode) */}

@@ -27,7 +27,7 @@ export const fetchConversationNotes = (convId) => api.get(`/api/conversations/${
 export const fetchConversationTags = (convId) => api.get(`/api/conversations/${convId}/tags`);
 export const listAgents = () => api.get('/api/conversations/agents');
 export const toggleConversationMode = (convId, mode) =>
-  api.post(`/api/conversations/${convId}/mode`, { mode });
+  api.patch(`/api/conversations/${convId}/mode?mode=${mode}`);
 
 export const assignAgent = (convId, agentId) =>
   api.post(`/api/conversations/${convId}/assign`, { agent_id: agentId });

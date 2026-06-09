@@ -249,11 +249,22 @@ export const useChatData = () => {
     async (conversationId, mode) => {
       if (!conversationId || !mode) return false;
       try {
+        // Call the API (expects PATCH /api/conversations/{id}/mode?mode=...)
         await chatApi.toggleConversationMode(conversationId, mode);
+
+        // OPTION 1: Update local conversation state immediately (recommended)
+        dispatch({
+          type: 'UPDATE_CONVERSATION_MODE',
+          payload: { id: conversationId, reply_mode: mode }
+        });
+
+        // OPTION 2: Refresh the entire conversation list (fallback)
         const list = await loadConversations();
         syncSelectedConversation(list, conversationId);
+
         return true;
       } catch (error) {
+        console.error('Toggle mode error:', error);
         dispatch({
           type: 'SET_ERROR',
           payload: error?.response?.data?.detail || 'Unable to change conversation mode',
@@ -263,7 +274,6 @@ export const useChatData = () => {
     },
     [dispatch, loadConversations, syncSelectedConversation]
   );
-
   const createConversation = useCallback(
     async (phoneNumber) => {
       if (!phoneNumber?.trim()) return null;

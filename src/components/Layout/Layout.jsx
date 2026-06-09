@@ -7,10 +7,9 @@ const Layout = ({ children }) => {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar – fixed left */}
       <Sidebar />
-      
-      {/* Right side: fixed header + scrollable content */}
+      {/* Main content area (with header + scrollable children) */}
       <div className="flex flex-1 flex-col ml-64">
-        <Header />  {/* Now header is outside the scrollable area */}
+        <Header />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>

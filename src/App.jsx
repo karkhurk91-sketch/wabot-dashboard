@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
+import Layout from "./components/Layout/Layout.jsx";
 
 // Public pages
 import Login from './pages/Login';
@@ -48,8 +49,6 @@ import WhatsAppTemplates from './pages/WhatsAppTemplates';
 import CustomFields from './pages/CustomFields';
 import ConversationFlows from './pages/ConversationFlows';
 
-
-
 // Partner pages
 import AdminPartners from './pages/AdminPartners';
 import PartnerDashboard from './pages/PartnerDashboard';
@@ -59,7 +58,6 @@ import PartnerSignup from './pages/PartnerSignup';
 import TeamManagement from './pages/TeamManagement';
 
 import BotBuilder from './pages/BotBuilder';
-
 
 function App() {
   return (
@@ -111,7 +109,6 @@ function App() {
           <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
           <Route path="/conversation-flows" element={<ProtectedRoute requiredRole="org_admin"><ConversationFlows /></ProtectedRoute>} />
 
-
           {/* Partner routes */}
           <Route path="/admin/partners" element={<ProtectedRoute requiredRole="super_admin"><AdminPartners /></ProtectedRoute>} />
           <Route path="/partner-dashboard" element={<ProtectedRoute requiredRole="partner"><PartnerDashboard /></ProtectedRoute>} />
@@ -120,8 +117,9 @@ function App() {
           {/* Team Management – only for org_admin */}
           <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
 
-          <Route path="/bot-builder" element={<BotBuilder />} />
+          {/* ✅ Bot Builder – now wrapped with Layout to show sidebar & header */}
 
+          <Route path="/bot-builder" element={<ProtectedRoute requiredRole="org_admin"><BotBuilder /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
