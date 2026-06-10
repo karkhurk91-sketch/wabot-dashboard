@@ -58,6 +58,8 @@ import PartnerSignup from './pages/PartnerSignup';
 import TeamManagement from './pages/TeamManagement';
 
 import BotBuilder from './pages/BotBuilder';
+import BotAnalytics from './pages/BotAnalytics';
+
 
 function App() {
   return (
@@ -120,6 +122,8 @@ function App() {
           {/* ✅ Bot Builder – now wrapped with Layout to show sidebar & header */}
 
           <Route path="/bot-builder" element={<ProtectedRoute requiredRole="org_admin"><BotBuilder /></ProtectedRoute>} />
+          <Route path="/bot-analytics" element={<ProtectedRoute requiredRole="org_admin"><BotAnalytics /></ProtectedRoute>} />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

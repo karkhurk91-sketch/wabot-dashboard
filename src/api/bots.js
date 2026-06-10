@@ -24,3 +24,12 @@ export const deleteBot = (botId) => {
 export const getBot = (botId) => {
   return api.get(`/api/bots/${botId}`);
 };
+
+export const getBotAnalyticsOverview = (days = 30) => 
+  api.get(`/api/bots/analytics/overview?days=${days}`);
+
+export const getBotAnalyticsDropoffs = () => 
+  api.get('/api/bots/analytics/dropoffs');
+
+export const getBotAnalyticsCustomValues = () => 
+  api.get('/api/bots/analytics/custom-values');

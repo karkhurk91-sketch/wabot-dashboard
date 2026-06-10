@@ -46,6 +46,7 @@ const Sidebar = () => {
   // Settings sub‑items (Team Management only for org_admin)
   const baseSettingsSubItems = [
     { path: '/profile', name: 'Profile', icon: '👤' },
+    { path: '/bot-analytics', name: 'Bot Analytics', icon: '📊', permission: 'view_analytics' },
     { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
     { path: '/channels', name: 'API Keys', icon: '🔑' },
     { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
