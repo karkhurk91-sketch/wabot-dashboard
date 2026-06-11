@@ -11,6 +11,7 @@ const ChatWindow = ({
   loading,
   typing,
   onSend,
+  onSendLocation,
   onMessageSent,
   onLoadOlder,
 }) => {
@@ -95,7 +96,7 @@ const ChatWindow = ({
 
       {/* Message Input */}
       <div className="bg-white p-3 border-t border-gray-200">
-        <MessageInput onSend={onSend} onMessageSent={onMessageSent} disabled={!canSend} />
+        <MessageInput onSend={onSend} onSendLocation={onSendLocation} onMessageSent={onMessageSent} disabled={!canSend} />
       </div>
 
       {/* Scroll to bottom button */}

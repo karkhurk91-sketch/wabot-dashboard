@@ -1,5 +1,7 @@
 import api from './api';
 
+// If you need API_BASE_URL elsewhere, define it; but we'll use api instance.
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const fetchConversations = () => api.get('/api/conversations');
 
@@ -48,17 +50,21 @@ export const attachConversationTag = (convId, tagId) =>
 export const detachConversationTag = (convId, tagId) =>
   api.delete(`/api/conversations/${convId}/tags/${tagId}`);
 
-// Add these to your existing chatApi.js
+// Conversation counts and mark read
 export const getConversationCounts = () => api.get('/api/conversations/counts');
 export const markConversationAsRead = (id) => api.put(`/api/conversations/${id}/mark-read`);
-// Add these to your existing chatApi.js
+
+// Assignment history and custom fields
 export const getAssignmentHistory = (id) => api.get(`/api/conversations/${id}/assignment-history`);
 export const updateConversationCustomFields = (id, customFields) => api.patch(`/api/conversations/${id}/custom-fields`, { custom_fields: customFields });
 export const updateCustomerOptIn = (id, optIn) => api.put(`/api/customers/${id}/opt-in`, { opt_in: optIn });
+
+// Custom field definitions
 export const fetchCustomFieldDefs = () => api.get('/api/conversations/custom-fields-definitions');
 export const createCustomFieldDef = (data) => api.post('/api/conversations/custom-fields-definitions', data);
 export const updateCustomFieldDef = (id, data) => api.patch(`/api/conversations/custom-fields-definitions/${id}`, data);
 export const deleteCustomFieldDef = (id) => api.delete(`/api/conversations/custom-fields-definitions/${id}`);
+
 // Lead nurturing API
 export const listNurturingSequences = () => api.get('/api/leads/nurturing/sequences');
 export const createNurturingSequence = (payload) => api.post('/api/leads/nurturing/sequences', payload);
@@ -69,18 +75,21 @@ export const deleteNurturingSequence = (id) => api.delete(`/api/leads/nurturing/
 export const assignNurturingToLead = (leadId, sequenceId) => api.post(`/api/leads/${leadId}/nurturing/assign`, { sequence_id: sequenceId });
 export const unassignNurturingFromLead = (leadId) => api.post(`/api/leads/${leadId}/nurturing/unassign`);
 export const triggerNurturingForLead = (leadId) => api.post(`/api/leads/${leadId}/nurturing/trigger`);
+
 // Follow-up management
 export const scheduleFollowUp = (leadId, scheduledAtISO) => api.post(`/api/leads/${leadId}/followup/schedule`, { scheduled_at: scheduledAtISO });
 export const cancelFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/cancel`);
 export const triggerFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/trigger`);
 export const listFollowUps = (limit = 50, offset = 0) => api.get(`/api/leads/followups?limit=${limit}&offset=${offset}`);
+
 export const getLeadByConversation = (convId) => api.get(`/api/leads/by-conversation/${convId}`);
 
-export const sendLocation = async (conversationId, latitude, longitude, address) => {
-  const response = await api.post(`/conversations/${conversationId}/send-location`, {
+// Send location - uses the configured api instance
+export const sendLocation = (conversationId, latitude, longitude, name, address) => {
+  return api.post(`/api/conversations/${conversationId}/send-location`, {
     latitude,
     longitude,
+    name,
     address,
   });
-  return response.data;
 };

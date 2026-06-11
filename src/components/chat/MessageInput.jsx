@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import useMediaUpload from '../../hooks/useMediaUpload';
 import EmojiPickerPanel from './EmojiPickerPanel';
+import LocationPickerModal from './LocationPickerModal';
 
-const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
+const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const inputRef = useRef(null);
 
   const mediaUpload = useMediaUpload();
@@ -22,15 +24,9 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
     getInputProps,
   } = mediaUpload;
 
-  // Debug: Check if dropzone input is properly configured
-  console.log('MessageInput render - dropzone input props:', getInputProps());
-  console.log('MessageInput render - dropzone root props:', getRootProps());
-
   const handleSend = async () => {
     if (!message.trim() && !hasAttachment) return;
-    //let sendSucceeded = false;
     let response = null;
-
 
     if (hasAttachment) {
       const formData = buildFormData(message.trim());
@@ -38,25 +34,15 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
         console.error('FormData missing file - aborting send');
         return;
       }
-      console.debug('Sending media attachment', {
-        fileName: formData.get('file')?.name,
-        messageType: formData.get('message_type'),
-        caption: message.trim(),
-      });
       setUploading(true);
-      console.log('Starting upload process...');
       try {
-        console.log('Calling onSend with formData...');
         response = await onSend(message.trim(), formData, (progressEvent) => {
           if (!progressEvent.lengthComputable) return;
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`Upload progress: ${percent}%`);
           updateProgress(percent);
         });
-        console.log('Upload completed successfully, response:', response);
         clearAttachment();
         setShowAttachmentMenu(false);
-        //sendSucceeded = true;
       } catch (err) {
         console.error('Upload failed', err);
         return;
@@ -65,16 +51,22 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
       }
     } else {
       response = await onSend(message.trim(), null);
-      //sendSucceeded = true;
     }
 
     if (response && onMessageSent) {
-      onMessageSent(response); // ← notify parent
+      onMessageSent(response);
     }
 
     setMessage('');
     setShowEmoji(false);
     inputRef.current?.focus();
+  };
+
+  const handleSendLocation = async (lat, lng, name, address) => {
+    if (onSendLocation) {
+      await onSendLocation(lat, lng, name, address);
+    }
+    setShowLocationPicker(false);
   };
 
   const handleKeyPress = (e) => {
@@ -137,14 +129,21 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => {
-            console.log('Attachment button clicked - toggling menu');
-            setShowAttachmentMenu((prev) => !prev);
-          }}
+          onClick={() => setShowAttachmentMenu((prev) => !prev)}
           className="rounded-full p-2 text-slate-500 transition hover:text-emerald-600 dark:text-slate-400"
         >
           📎
         </button>
+
+        <button
+          type="button"
+          onClick={() => setShowLocationPicker(true)}
+          className="rounded-full p-2 text-slate-500 transition hover:text-emerald-600 dark:text-slate-400"
+          title="Send location"
+        >
+          📍
+        </button>
+
         <div className="relative">
           <button
             type="button"
@@ -155,6 +154,7 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
           </button>
           {showEmoji && <EmojiPickerPanel onEmojiClick={onEmojiSelect} />}
         </div>
+
         <textarea
           ref={inputRef}
           rows={1}
@@ -164,6 +164,7 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
           placeholder="Type a message"
           className="min-h-[44px] flex-1 resize-none rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
         />
+
         <button
           type="button"
           onClick={handleSend}
@@ -173,6 +174,12 @@ const MessageInput = ({ onSend, onTyping, onMessageSent }) => {
           ➤
         </button>
       </div>
+
+      <LocationPickerModal
+        isOpen={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onSend={handleSendLocation}
+      />
     </div>
   );
 };

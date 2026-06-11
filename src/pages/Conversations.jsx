@@ -6,7 +6,7 @@ import ConversationList from '../components/chat/ConversationList';
 import ChatWindow from '../components/chat/ChatWindow';
 import ConversationSidebar from '../components/chat/ConversationSidebar';
 import StatisticsBar from '../components/chat/StatisticsBar';
-import { getConversationCounts, markConversationAsRead } from '../services/chatApi';
+import { getConversationCounts, markConversationAsRead, sendLocation } from '../services/chatApi';
 import { getLeadByConversation } from '../services/leadService';
 import AISummaryPanel from '../components/chat/AISummaryPanel';
 import { useAuth } from '../context/AuthContext';
@@ -116,6 +116,16 @@ const ConversationsContent = () => {
     await loadMessages(selectedConversation.id);
   };
 
+  const handleSendLocation = async (latitude, longitude, name, address) => {
+    if (!selectedConversation) return null;
+    try {
+      const response = await sendLocation(selectedConversation.id, latitude, longitude, name, address);
+      return response;
+    } catch (error) {
+      console.error('Failed to send location', error);
+    }
+  };
+
   // ----- WEBSOCKET FOR REAL‑TIME UPDATES (typing indicator, new messages) -----
   useEffect(() => {
     if (!selectedConversation?.id) return;
@@ -174,6 +184,7 @@ const ConversationsContent = () => {
           loading={loading}
           typing={state.typing}
           onSend={handleSend}
+          onSendLocation={handleSendLocation}
           onLoadOlder={handleLoadOlder}
         />
         <ConversationSidebar
