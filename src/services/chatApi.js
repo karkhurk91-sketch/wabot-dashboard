@@ -75,3 +75,12 @@ export const cancelFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followu
 export const triggerFollowUp = (leadId) => api.post(`/api/leads/${leadId}/followup/trigger`);
 export const listFollowUps = (limit = 50, offset = 0) => api.get(`/api/leads/followups?limit=${limit}&offset=${offset}`);
 export const getLeadByConversation = (convId) => api.get(`/api/leads/by-conversation/${convId}`);
+
+export const sendLocation = async (conversationId, latitude, longitude, address) => {
+  const response = await api.post(`/conversations/${conversationId}/send-location`, {
+    latitude,
+    longitude,
+    address,
+  });
+  return response.data;
+};

@@ -52,9 +52,33 @@ const MessageBubble = ({ message, isOwn }) => {
   const timestamp = message.sort_timestamp || message.created_at;
   const timeString = timestamp ? formatTimestampToIST(timestamp) : '';
 
+  // Handle location messages (optional Phase 7 enhancement)
+  const isLocation = message.message_type === 'location';
+  const locationLat = message.latitude || (message.content ? parseCoordinates(message.content)?.lat : null);
+  const locationLng = message.longitude || (message.content ? parseCoordinates(message.content)?.lng : null);
+
+  function parseCoordinates(text) {
+    const match = text?.match(/Location:\s*([-\d.]+),\s*([-\d.]+)/);
+    if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+    return null;
+  }
+
   return (
     <div className={`flex ${alignmentClass} px-2 mb-1 ${isSending ? 'opacity-75' : ''}`}>
       <div className={`max-w-[70%] ${cornerClass} px-3 py-2 shadow-sm ${bubbleClass} ${isSending ? 'italic' : ''}`}>
+        {message.mode && (
+          <div className="mb-1 flex items-center">
+            <span className={`text-[11px] font-semibold mr-2 px-2 py-0.5 rounded-full capitalize ${
+              message.mode === 'ai' ? 'bg-violet-100 text-violet-700' :
+              message.mode === 'human' ? 'bg-emerald-100 text-emerald-700' :
+              message.mode === 'rule' ? 'bg-orange-100 text-orange-700' :
+              message.mode === 'bot' ? 'bg-teal-100 text-teal-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>{message.mode}</span>
+          </div>
+        )}
+
+        {/* Media messages */}
         {isMediaMessage(message.message_type) && (
           <div className="mb-2">
             {!absoluteMediaUrl && (
@@ -81,7 +105,23 @@ const MessageBubble = ({ message, isOwn }) => {
           </div>
         )}
 
-        {bodyText && <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{bodyText}</div>}
+        {/* Location message */}
+        {isLocation && (locationLat && locationLng) && (
+          <div className="mb-2">
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${locationLat}&mlon=${locationLng}#map=16/${locationLat}/${locationLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
+            >
+              📍 View on Map
+            </a>
+            {bodyText && <div className="text-xs text-gray-500 mt-1">{bodyText}</div>}
+          </div>
+        )}
+
+        {/* Text content (if not a location message with no extra text) */}
+        {!isLocation && bodyText && <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{bodyText}</div>}
 
         <div className="flex items-center justify-end gap-1 mt-1">
           <span className="text-[11px] text-gray-500">{timeString}</span>
