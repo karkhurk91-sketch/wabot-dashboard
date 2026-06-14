@@ -5,11 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 const Sidebar = () => {
   const { user, permissions, userRole } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leadsOpen, setLeadsOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [miniAiOpen, setMiniAiOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // --- Super Admin items ---
   const adminItems = [
     { path: '/admin/dashboard', name: 'Dashboard', icon: '📊' },
     { path: '/organizations', name: 'Organizations', icon: '🏢' },
+    { path: '/admin/permissions', name: 'Permissions', icon: '🔐' },
+    { path: '/admin/UserPermissions', name: 'User Permissions', icon: '👤' },   // <-- ADDED
     { path: '/admin/partners', name: 'Partners', icon: '🤝' },
     { path: '/admin/prompts', name: 'AI Prompts', icon: '🤖' },
     { path: '/admin/ai-test', name: 'AI Agent', icon: '💬' },
@@ -24,60 +30,101 @@ const Sidebar = () => {
     { path: '/organizations', name: 'Organizations', icon: '🏢' }
   ];
 
-  // --- Organization items (permission‑based) ---
-  const orgItems = [
+  // --- Organization top‑level items (after moving AI/Mini‑AI items out) ---
+  const topLevelOrgItems = [
     { path: '/dashboard', name: 'Dashboard', icon: '📊', permission: 'view_dashboard' },
     { path: '/customers', name: 'Customers', icon: '👥', permission: 'manage_customers' },
     { path: '/campaigns', name: 'Campaigns', icon: '📢', permission: 'manage_campaigns' },
-    { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
-    { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
-    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
-    { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_ai_prompts' },
-    { path: '/conversations', name: 'Conversations', icon: '💬', permission: 'manage_conversations' },
-    { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
-    { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' },
-    { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚', permission: 'manage_knowledge_base' },
     { path: '/bookings', name: 'Bookings', icon: '📅', permission: 'manage_bookings' },
     { path: '/calendar', name: 'Calendar', icon: '📆', permission: 'view_calendar' },
-    { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' },
-    { path: '/bot-builder', name: 'Bot Builder', icon: '📈', permission: 'view_analytics' },
+    { path: '/analytics', name: 'Analytics', icon: '📈', permission: 'view_analytics' }
   ];
 
-  // Settings sub‑items (Team Management only for org_admin)
-  const baseSettingsSubItems = [
-    { path: '/profile', name: 'Profile', icon: '👤' },
-    { path: '/bot-analytics', name: 'Bot Analytics', icon: '📊', permission: 'view_analytics' },
+  // WhatsApp sub‑items
+  const whatsappSubItems = [
+    { path: '/conversations', name: 'Index', icon: '💬', permission: 'manage_conversations' },
+    { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
+    { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' }
+  ];
+
+  // Leads sub‑items
+  const leadsSubItems = [
+    { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
+    { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
+    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' }
+  ];
+
+  // Mini‑AI sub‑items (formerly scattered)
+  const miniAiSubItems = [
+    { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_ai_prompts' },
     { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
-    { path: '/channels', name: 'API Keys', icon: '🔑' },
-    { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
-    { path: '/integrations', name: 'Integrations', icon: '🔌' },
-    { path: '/notifications', name: 'Notifications', icon: '🔔' },
-    { path: '/security', name: '2FA & Security', icon: '🛡️' }
+    { path: '/bot-builder', name: 'Bot Builder', icon: '🤖', permission: 'view_analytics' },
+    { path: '/bot-analytics', name: 'Bot Analytics', icon: '📊', permission: 'view_analytics' }
   ];
 
-  const settingsSubItems = userRole === 'org_admin'
-    ? [{ path: '/team', name: 'Team Members', icon: '👥' }, ...baseSettingsSubItems]
-    : baseSettingsSubItems;
+  // AI sub‑items
+  const aiSubItems = [
+    { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
+    { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚', permission: 'manage_knowledge_base' },
+    { path: '/ai-chat', name: 'AI Chat', icon: '💬' }  // new route, adjust if needed
+  ];
 
-  // Determine which main items to show (with fallback)
+  // Settings sub‑items (only remaining items after moving AI/Mini‑AI out)
+  const settingsSubItems = userRole === 'org_admin'
+    ? [
+        { path: '/team', name: 'Team Members', icon: '👥' },
+        { path: '/profile', name: 'Profile', icon: '👤' },
+        { path: '/channels', name: 'API Keys', icon: '🔑' },
+        { path: '/integrations', name: 'Integrations', icon: '🔌' },
+        { path: '/notifications', name: 'Notifications', icon: '🔔' },
+        { path: '/security', name: '2FA & Security', icon: '🛡️' }
+      ]
+    : [
+        { path: '/profile', name: 'Profile', icon: '👤' },
+        { path: '/channels', name: 'API Keys', icon: '🔑' },
+        { path: '/integrations', name: 'Integrations', icon: '🔌' },
+        { path: '/notifications', name: 'Notifications', icon: '🔔' },
+        { path: '/security', name: '2FA & Security', icon: '🛡️' }
+      ];
+
+  // --- Filter items by permissions ---
+  const filterByPermission = (items) => {
+    if (!permissions || permissions.length === 0) return items;
+    return items.filter(item => !item.permission || permissions.includes(item.permission));
+  };
+
+  // Determine which items to show based on role
   let mainItems = [];
+  let whatsappFiltered = [];
+  let leadsFiltered = [];
+  let miniAiFiltered = [];
+  let aiFiltered = [];
+  let settingsFiltered = [];
+
   if (userRole === 'super_admin') {
     mainItems = adminItems;
   } else if (userRole === 'partner') {
     mainItems = partnerItems;
   } else if (userRole === 'org_admin' || userRole === 'agent' || userRole === 'viewer') {
-    if (permissions && permissions.length) {
-      mainItems = orgItems.filter(item => !item.permission || permissions.includes(item.permission));
-    } else {
-      mainItems = orgItems; // fallback show all
-    }
+    mainItems = filterByPermission(topLevelOrgItems);
+    whatsappFiltered = filterByPermission(whatsappSubItems);
+    leadsFiltered = filterByPermission(leadsSubItems);
+    miniAiFiltered = filterByPermission(miniAiSubItems);
+    aiFiltered = filterByPermission(aiSubItems);
+    settingsFiltered = filterByPermission(settingsSubItems);
   } else {
-    // Default fallback: show organization items
-    mainItems = orgItems;
+    // Fallback: show all without filtering
+    mainItems = topLevelOrgItems;
+    whatsappFiltered = whatsappSubItems;
+    leadsFiltered = leadsSubItems;
+    miniAiFiltered = miniAiSubItems;
+    aiFiltered = aiSubItems;
+    settingsFiltered = settingsSubItems;
   }
 
-  // Prevent blank sidebar (always render something)
-  if (mainItems.length === 0 && settingsSubItems.length === 0) {
+  // If nothing to show, render minimal sidebar
+  if (mainItems.length === 0 && whatsappFiltered.length === 0 && leadsFiltered.length === 0 &&
+      miniAiFiltered.length === 0 && aiFiltered.length === 0 && settingsFiltered.length === 0) {
     return <div className="w-64 bg-gray-900"></div>;
   }
 
@@ -93,6 +140,7 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex flex-col gap-1 p-4">
+        {/* Top-level menu items */}
         {mainItems.map((item) => (
           <NavLink
             key={item.path}
@@ -110,8 +158,172 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        {/* Settings section */}
-        {settingsSubItems.length > 0 && (
+        {/* WhatsApp dropdown */}
+        {whatsappFiltered.length > 0 && (
+          <div className="mt-1">
+            <button
+              onClick={() => setWhatsappOpen(!whatsappOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">💬</span>
+                <span>WhatsApp</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${whatsappOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${whatsappOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {whatsappFiltered.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Leads dropdown */}
+        {leadsFiltered.length > 0 && (
+          <div className="mt-1">
+            <button
+              onClick={() => setLeadsOpen(!leadsOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">🎯</span>
+                <span>Leads</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${leadsOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${leadsOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {leadsFiltered.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mini‑AI dropdown */}
+        {miniAiFiltered.length > 0 && (
+          <div className="mt-1">
+            <button
+              onClick={() => setMiniAiOpen(!miniAiOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">⚡</span>
+                <span>Mini-AI</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${miniAiOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${miniAiOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {miniAiFiltered.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI dropdown */}
+        {aiFiltered.length > 0 && (
+          <div className="mt-1">
+            <button
+              onClick={() => setAiOpen(!aiOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">🧠</span>
+                <span>AI</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${aiOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${aiOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {aiFiltered.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Settings dropdown */}
+        {settingsFiltered.length > 0 && (
           <div className="mt-2">
             <button
               onClick={() => setSettingsOpen(!settingsOpen)}
@@ -130,9 +342,8 @@ const Sidebar = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-
             <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${settingsOpen ? 'max-h-96' : 'max-h-0'}`}>
-              {settingsSubItems.map((sub) => (
+              {settingsFiltered.map((sub) => (
                 <NavLink
                   key={sub.path}
                   to={sub.path}

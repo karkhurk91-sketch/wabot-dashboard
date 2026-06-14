@@ -2,6 +2,31 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+// The complete list of permissions (as requested)
+const ALL_PERMISSIONS = [
+  'view_dashboard',
+  'manage_customers',
+  'manage_conversations',
+  'manage_campaigns',
+  'manage_leads',
+  'manage_broadcast',
+  'manage_ai_prompts',
+  'manage_knowledge_base',
+  'view_analytics',
+  'manage_bookings',
+  'view_calendar',
+  'manage_channels',
+  'manage_settings',
+  'manage_templates',
+  'manage_team',
+  'manage_integrations',
+  'manage_custom_fields',
+  'manage_bot_builder',
+  'manage_lead_schemas',
+  'manage_nurturing',
+  'view_audit_logs'
+];
+
 export default function TeamManagement() {
   const { user, userRole } = useAuth();
   const [teamMembers, setTeamMembers] = useState([]);
@@ -9,6 +34,12 @@ export default function TeamManagement() {
   const [error, setError] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', role: 'agent' });
+  
+  // Permission modal state
+  const [showPermModal, setShowPermModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [userPerms, setUserPerms] = useState([]);
+  const [savingPerms, setSavingPerms] = useState(false);
 
   useEffect(() => {
     if (userRole !== 'org_admin') {
@@ -33,6 +64,41 @@ export default function TeamManagement() {
       setError(err.response?.data?.detail || 'Failed to load team members');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openPermissionModal = async (member) => {
+    setSelectedMember(member);
+    try {
+      // Fetch current extra permissions for this user (if any)
+      const res = await api.get(`/api/team/${member.id}/permissions`);
+      setUserPerms(res.data.permissions || []);
+    } catch (err) {
+      console.error(err);
+      setUserPerms([]);
+    }
+    setShowPermModal(true);
+  };
+
+  const togglePermission = (permName) => {
+    setUserPerms(prev =>
+      prev.includes(permName)
+        ? prev.filter(p => p !== permName)
+        : [...prev, permName]
+    );
+  };
+
+  const saveUserPermissions = async () => {
+    setSavingPerms(true);
+    try {
+      await api.put(`/api/team/${selectedMember.id}/permissions`, { permission_names: userPerms });
+      alert('Permissions saved successfully');
+      setShowPermModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save permissions');
+    } finally {
+      setSavingPerms(false);
     }
   };
 
@@ -114,11 +180,16 @@ export default function TeamManagement() {
                     {member.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 space-x-2">
                   {userRole === 'org_admin' && member.id !== user?.user_id && (
-                    <button onClick={() => removeMember(member.id)} className="text-red-600 hover:underline">
-                      Remove
-                    </button>
+                    <>
+                      <button onClick={() => openPermissionModal(member)} className="text-indigo-600 hover:underline">
+                        Permissions
+                      </button>
+                      <button onClick={() => removeMember(member.id)} className="text-red-600 hover:underline">
+                        Remove
+                      </button>
+                    </>
                   )}
                   {member.id === user?.user_id && <span className="text-gray-400">You</span>}
                 </td>
@@ -128,6 +199,7 @@ export default function TeamManagement() {
         </table>
       </div>
 
+      {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
@@ -153,11 +225,39 @@ export default function TeamManagement() {
             >
               <option value="agent">Agent</option>
               <option value="viewer">Viewer</option>
-              <option value="org_admin">Organization Admin</option>
             </select>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowInviteModal(false)} className="px-4 py-2 border rounded">Cancel</button>
               <button onClick={inviteMember} className="px-4 py-2 bg-indigo-600 text-white rounded">Send Invite</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Modal */}
+      {showPermModal && selectedMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-2">Permissions for {selectedMember.full_name}</h3>
+            <p className="text-sm text-gray-500 mb-4">Grant extra permissions (on top of role defaults)</p>
+            <div className="space-y-2">
+              {ALL_PERMISSIONS.map(perm => (
+                <label key={perm} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={userPerms.includes(perm)}
+                    onChange={() => togglePermission(perm)}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">{perm}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowPermModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+              <button onClick={saveUserPermissions} disabled={savingPerms} className="px-4 py-2 bg-indigo-600 text-white rounded disabled:opacity-50">
+                {savingPerms ? 'Saving...' : 'Save'}
+              </button>
             </div>
           </div>
         </div>

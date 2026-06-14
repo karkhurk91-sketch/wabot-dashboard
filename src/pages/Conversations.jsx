@@ -135,7 +135,7 @@ const ConversationsContent = () => {
     if (!token || !orgId) return;
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/alerts?org_id=${orgId}&token=${token}`;
+    const wsUrl = `ws://localhost:8000/ws/alerts?org_id=${orgId}&token=${token}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

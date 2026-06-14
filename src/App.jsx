@@ -26,6 +26,8 @@ import AdminPrompts from './pages/AdminPrompts';
 import AdminBlogs from './pages/AdminBlogs';
 import AdminChannels from './pages/AdminChannels';
 import Organizations from './pages/Organizations';
+import PermissionMatrix from './pages/admin/PermissionMatrix';
+import UserPermissions from './pages/admin/UserPermissions';
 
 // Organization pages
 import OrgDashboard from './pages/OrgDashboard';
@@ -60,7 +62,6 @@ import TeamManagement from './pages/TeamManagement';
 import BotBuilder from './pages/BotBuilder';
 import BotAnalytics from './pages/BotAnalytics';
 
-
 function App() {
   return (
     <AuthProvider>
@@ -88,6 +89,8 @@ function App() {
           <Route path="/admin/ai-test" element={<ProtectedRoute requiredRole="super_admin"><AdminAITest /></ProtectedRoute>} />
           <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="super_admin"><AdminBlogs /></ProtectedRoute>} />
           <Route path="/admin/channels" element={<ProtectedRoute requiredRole="super_admin"><AdminChannels /></ProtectedRoute>} />
+          <Route path="/admin/permissions" element={<ProtectedRoute allowedRoles={['super_admin']}><PermissionMatrix /></ProtectedRoute>} />
+          <Route path="/admin/UserPermissions" element={<ProtectedRoute allowedRoles={['super_admin']}><UserPermissions /></ProtectedRoute>} />
 
           {/* Organization routes – now accessible by any authenticated user (agent, viewer, org_admin) */}
           <Route path="/dashboard" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
@@ -119,11 +122,9 @@ function App() {
           {/* Team Management – only for org_admin */}
           <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
 
-          {/* ✅ Bot Builder – now wrapped with Layout to show sidebar & header */}
-
+          {/* Bot Builder – wrapped with Layout to show sidebar & header */}
           <Route path="/bot-builder" element={<ProtectedRoute requiredRole="org_admin"><BotBuilder /></ProtectedRoute>} />
           <Route path="/bot-analytics" element={<ProtectedRoute requiredRole="org_admin"><BotAnalytics /></ProtectedRoute>} />
-
         </Routes>
       </BrowserRouter>
     </AuthProvider>
