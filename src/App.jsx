@@ -61,6 +61,12 @@ import TeamManagement from './pages/TeamManagement';
 
 import BotBuilder from './pages/BotBuilder';
 import BotAnalytics from './pages/BotAnalytics';
+// Facebook Marketing pages
+import FacebookPostCreator from './pages/facebook/PostCreator';
+import FacebookPageManager from './pages/facebook/PageManager';
+import FacebookPostList from './pages/facebook/PostList';
+import BoostList from './pages/facebook/BoostList';
+
 
 function App() {
   return (
@@ -125,6 +131,11 @@ function App() {
           {/* Bot Builder – wrapped with Layout to show sidebar & header */}
           <Route path="/bot-builder" element={<ProtectedRoute requiredRole="org_admin"><BotBuilder /></ProtectedRoute>} />
           <Route path="/bot-analytics" element={<ProtectedRoute requiredRole="org_admin"><BotAnalytics /></ProtectedRoute>} />
+          {/* Facebook Marketing routes */}
+          <Route path="/facebook/posts" element={<ProtectedRoute requiredRole="org_admin"><FacebookPostCreator /></ProtectedRoute>} />
+          <Route path="/facebook/pages" element={<ProtectedRoute requiredRole="org_admin"><FacebookPageManager /></ProtectedRoute>} />
+          <Route path="/facebook/posts/list" element={<ProtectedRoute requiredRole="org_admin"><FacebookPostList /></ProtectedRoute>} />
+          <Route path="/facebook/boosts" element={<ProtectedRoute requiredRole="org_admin"><BoostList /></ProtectedRoute>}/>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

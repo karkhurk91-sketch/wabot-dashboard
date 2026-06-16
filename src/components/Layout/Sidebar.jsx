@@ -9,13 +9,14 @@ const Sidebar = () => {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [miniAiOpen, setMiniAiOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [digitalMarketingOpen, setDigitalMarketingOpen] = useState(false); // NEW
 
   // --- Super Admin items ---
   const adminItems = [
     { path: '/admin/dashboard', name: 'Dashboard', icon: '📊' },
     { path: '/organizations', name: 'Organizations', icon: '🏢' },
     { path: '/admin/permissions', name: 'Permissions', icon: '🔐' },
-    { path: '/admin/UserPermissions', name: 'User Permissions', icon: '👤' },   // <-- ADDED
+    { path: '/admin/UserPermissions', name: 'User Permissions', icon: '👤' },
     { path: '/admin/partners', name: 'Partners', icon: '🤝' },
     { path: '/admin/prompts', name: 'AI Prompts', icon: '🤖' },
     { path: '/admin/ai-test', name: 'AI Agent', icon: '💬' },
@@ -30,7 +31,7 @@ const Sidebar = () => {
     { path: '/organizations', name: 'Organizations', icon: '🏢' }
   ];
 
-  // --- Organization top‑level items (after moving AI/Mini‑AI items out) ---
+  // --- Organization top‑level items ---
   const topLevelOrgItems = [
     { path: '/dashboard', name: 'Dashboard', icon: '📊', permission: 'view_dashboard' },
     { path: '/customers', name: 'Customers', icon: '👥', permission: 'manage_customers' },
@@ -54,7 +55,7 @@ const Sidebar = () => {
     { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' }
   ];
 
-  // Mini‑AI sub‑items (formerly scattered)
+  // Mini‑AI sub‑items
   const miniAiSubItems = [
     { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_ai_prompts' },
     { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
@@ -66,10 +67,22 @@ const Sidebar = () => {
   const aiSubItems = [
     { path: '/ai-config', name: 'AI Prompt', icon: '🤖', permission: 'manage_ai_prompts' },
     { path: '/knowledge-base', name: 'Knowledge Base', icon: '📚', permission: 'manage_knowledge_base' },
-    { path: '/ai-chat', name: 'AI Chat', icon: '💬' }  // new route, adjust if needed
+    { path: '/ai-chat', name: 'AI Chat', icon: '💬' }
   ];
 
-  // Settings sub‑items (only remaining items after moving AI/Mini‑AI out)
+  // Digital Marketing sub‑items (Facebook, Instagram, LinkedIn)
+  // For now, only Facebook has actual routes; others are placeholders.
+// Digital Marketing sub‑items (Facebook, Instagram, LinkedIn)
+// For now, only Facebook has actual routes; others are placeholders.
+  const digitalMarketingSubItems = [
+ { path: '/facebook/posts', name: 'Post Creator', icon: '📝', permission: 'manage_campaigns' },
+    { path: '/facebook/posts/list', name: 'Post List', icon: '📋', permission: 'manage_campaigns' },
+    { path: '/facebook/boosts', name: 'Boost History', icon: '🚀', permission: 'manage_campaigns' },
+    { path: '/facebook/pages', name: 'Page Manager', icon: '📄', permission: 'manage_campaigns' },
+    { path: '/instagram/posts', name: 'Instagram (coming soon)', icon: '📸', permission: 'manage_campaigns' },
+    { path: '/linkedin/posts', name: 'LinkedIn (coming soon)', icon: '🔗', permission: 'manage_campaigns' }
+  ];
+  // Settings sub‑items
   const settingsSubItems = userRole === 'org_admin'
     ? [
         { path: '/team', name: 'Team Members', icon: '👥' },
@@ -99,6 +112,7 @@ const Sidebar = () => {
   let leadsFiltered = [];
   let miniAiFiltered = [];
   let aiFiltered = [];
+  let digitalMarketingFiltered = [];
   let settingsFiltered = [];
 
   if (userRole === 'super_admin') {
@@ -111,6 +125,7 @@ const Sidebar = () => {
     leadsFiltered = filterByPermission(leadsSubItems);
     miniAiFiltered = filterByPermission(miniAiSubItems);
     aiFiltered = filterByPermission(aiSubItems);
+    digitalMarketingFiltered = filterByPermission(digitalMarketingSubItems);
     settingsFiltered = filterByPermission(settingsSubItems);
   } else {
     // Fallback: show all without filtering
@@ -119,12 +134,14 @@ const Sidebar = () => {
     leadsFiltered = leadsSubItems;
     miniAiFiltered = miniAiSubItems;
     aiFiltered = aiSubItems;
+    digitalMarketingFiltered = digitalMarketingSubItems;
     settingsFiltered = settingsSubItems;
   }
 
   // If nothing to show, render minimal sidebar
   if (mainItems.length === 0 && whatsappFiltered.length === 0 && leadsFiltered.length === 0 &&
-      miniAiFiltered.length === 0 && aiFiltered.length === 0 && settingsFiltered.length === 0) {
+      miniAiFiltered.length === 0 && aiFiltered.length === 0 && digitalMarketingFiltered.length === 0 &&
+      settingsFiltered.length === 0) {
     return <div className="w-64 bg-gray-900"></div>;
   }
 
@@ -303,6 +320,47 @@ const Sidebar = () => {
             </button>
             <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${aiOpen ? 'max-h-96' : 'max-h-0'}`}>
               {aiFiltered.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5">{sub.icon}</span>
+                  <span>{sub.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Digital Marketing dropdown (NEW) */}
+        {digitalMarketingFiltered.length > 0 && (
+          <div className="mt-1">
+            <button
+              onClick={() => setDigitalMarketingOpen(!digitalMarketingOpen)}
+              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl w-6">📢</span>
+                <span>Digital Marketing</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${digitalMarketingOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`ml-6 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${digitalMarketingOpen ? 'max-h-96' : 'max-h-0'}`}>
+              {digitalMarketingFiltered.map((sub) => (
                 <NavLink
                   key={sub.path}
                   to={sub.path}
