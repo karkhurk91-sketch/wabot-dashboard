@@ -14,16 +14,16 @@ export default function FacebookPostCreator() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [hashtags, setHashtags] = useState('');
-  const [media, setMedia] = useState(null);
+  const [mediaItems, setMediaItems] = useState([]);
   const [scheduledFor, setScheduledFor] = useState('');
   const [showSchedule, setShowSchedule] = useState(false);
   const [privacy, setPrivacy] = useState('public');
   const [isAdPost, setIsAdPost] = useState(false);
 
   // ---------- Add‑to‑post features ----------
-  const [feeling, setFeeling] = useState(null); // { emoji, name }
-  const [location, setLocation] = useState(null); // string
-  const [cta, setCta] = useState(null); // { type: 'whatsapp'|'messenger'|'call', value: string }
+  const [feeling, setFeeling] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [cta, setCta] = useState(null);
   const [linkPreview, setLinkPreview] = useState(null);
   const [abTest, setAbTest] = useState(null);
 
@@ -54,17 +54,15 @@ export default function FacebookPostCreator() {
 
   const textareaRef = useRef(null);
 
-  // ---------- Media handler ----------
-  const handleMediaSelected = (mediaObj) => {
-    setMedia(mediaObj);
+  const handleMediaSelected = (items) => {
+    setMediaItems(items);
   };
 
-  // ---------- Form reset ----------
   const resetForm = () => {
     setTitle('');
     setContent('');
     setHashtags('');
-    setMedia(null);
+    setMediaItems([]);
     setScheduledFor('');
     setShowSchedule(false);
     setIsAdPost(false);
@@ -77,6 +75,13 @@ export default function FacebookPostCreator() {
     setSuccess(null);
     setError(null);
   };
+
+  // Auto-select first page if only one exists
+  useEffect(() => {
+    if (pages.length === 1 && !pageId) {
+      setPageId(pages[0].id);
+    }
+  }, [pages, pageId]);
 
   // ---------- Modal handlers ----------
   const selectFeeling = (emoji, name) => {
@@ -160,8 +165,8 @@ export default function FacebookPostCreator() {
         title: title || undefined,
         content,
         hashtags: hashtags || undefined,
-        media_url: media?.url || null,
-        media_type: media?.type || null,
+        media_url: mediaItems.length > 0 ? mediaItems[0].url : null,
+        media_type: mediaItems.length > 0 ? mediaItems[0].type : null,
         scheduled_for: showSchedule ? scheduledFor : undefined,
         publish_now: true,
         privacy,
@@ -171,6 +176,10 @@ export default function FacebookPostCreator() {
         cta,
         link_preview: linkPreview,
         ab_test: abTest,
+        attached_media: mediaItems.map((item) => ({
+          media_url: item.url,
+          media_type: item.type,
+        })),
       };
       const res = await facebookApi.createPost(payload);
       if (res.data.message === 'Post scheduled') {
@@ -205,8 +214,8 @@ export default function FacebookPostCreator() {
         title: title || undefined,
         content,
         hashtags: hashtags || undefined,
-        media_url: media?.url || null,
-        media_type: media?.type || null,
+        media_url: mediaItems.length > 0 ? mediaItems[0].url : null,
+        media_type: mediaItems.length > 0 ? mediaItems[0].type : null,
         publish_now: false,
         privacy,
         is_ad_post: isAdPost,
@@ -215,6 +224,10 @@ export default function FacebookPostCreator() {
         cta,
         link_preview: linkPreview,
         ab_test: abTest,
+        attached_media: mediaItems.map((item) => ({
+          media_url: item.url,
+          media_type: item.type,
+        })),
       };
       const res = await facebookApi.createPost(payload);
       setSuccess(`Post saved as draft! (ID: ${res.data.db_id})`);
@@ -293,14 +306,14 @@ export default function FacebookPostCreator() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Post to</label>
               <div className="relative">
                 <select
-                  value={pageId}
+                  value={pageId || ''}
                   onChange={(e) => setPageId(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-3 bg-white appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a page</option>
                   {pages.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {p.name || `Page ${p.page_id}`}
                     </option>
                   ))}
                 </select>
@@ -313,18 +326,20 @@ export default function FacebookPostCreator() {
               {selectedPage && (
                 <div className="flex items-center mt-2 text-sm text-gray-600">
                   <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-2 text-xs">
-                    {selectedPage.name.charAt(0)}
+                    {selectedPage?.name?.charAt(0) || 'P'}
                   </div>
-                  <span>{selectedPage.name}</span>
+                  <span>{selectedPage.name || `Page ${selectedPage.page_id}`}</span>
                 </div>
               )}
             </div>
 
-            {/* Media – two buttons: Add photo and Add video */}
+            {/* Media */}
             <div className="mb-5">
               <label className="block text-sm font-medium text-gray-700 mb-1">Media</label>
-              <MediaUploader onMediaSelected={handleMediaSelected} />
-              {media && <p className="text-xs text-green-600 mt-1">Media selected: {media.type}</p>}
+              <MediaUploader existingMedia={mediaItems} onMediaSelected={handleMediaSelected} />
+              {mediaItems.length > 0 && (
+                <p className="text-xs text-green-600 mt-1">{mediaItems.length} media item(s) selected</p>
+              )}
             </div>
 
             {/* Post details – Make this an ad post toggle */}
@@ -493,9 +508,21 @@ export default function FacebookPostCreator() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-sm font-medium text-gray-700">Share to</span>
-                  <div className="text-sm text-gray-600">
-                    {selectedPage ? selectedPage.name : 'Select a page'} · Facebook story ·{' '}
-                    {privacy === 'public' ? 'Public' : 'Restricted'}
+                  <div className="text-sm text-gray-600 flex items-center gap-1">
+                    {selectedPage ? (
+                      <>
+                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                          {selectedPage?.name?.charAt(0) || 'P'}
+                        </div>
+                        <span>{selectedPage.name || `Page ${selectedPage.page_id}`}</span>
+                      </>
+                    ) : (
+                      <span>Select a page</span>
+                    )}
+                    <span className="mx-1">·</span>
+                    <span>Facebook story</span>
+                    <span className="mx-1">·</span>
+                    <span>{privacy === 'public' ? 'Public' : 'Restricted'}</span>
                   </div>
                 </div>
                 <span className="text-xs text-gray-400">🔒</span>
@@ -593,9 +620,8 @@ export default function FacebookPostCreator() {
             title={title}
             content={content}
             hashtags={hashtags}
-            mediaUrl={media?.url}
-            mediaType={media?.type}
-            pageName={selectedPage?.name}
+            media={mediaItems}
+            pageName={selectedPage?.name || 'Page'}
             privacy={privacy}
             feeling={feeling}
             location={location}
@@ -610,7 +636,10 @@ export default function FacebookPostCreator() {
 
       {/* Feeling Modal */}
       {showFeelingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowFeelingModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowFeelingModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">How are you feeling?</h3>
@@ -635,7 +664,10 @@ export default function FacebookPostCreator() {
 
       {/* Location Modal */}
       {showLocationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLocationModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowLocationModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">Add Location</h3>
@@ -660,7 +692,10 @@ export default function FacebookPostCreator() {
 
       {/* WhatsApp Modal */}
       {showWhatsAppModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowWhatsAppModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowWhatsAppModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">
@@ -692,7 +727,10 @@ export default function FacebookPostCreator() {
 
       {/* Messenger Modal */}
       {showMessengerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowMessengerModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowMessengerModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">
@@ -717,7 +755,10 @@ export default function FacebookPostCreator() {
 
       {/* Call Modal */}
       {showCallModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCallModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowCallModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">
@@ -749,7 +790,10 @@ export default function FacebookPostCreator() {
 
       {/* Link Preview Modal */}
       {showLinkPreviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLinkPreviewModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowLinkPreviewModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">
@@ -791,7 +835,10 @@ export default function FacebookPostCreator() {
 
       {/* A/B Test Modal */}
       {showABTestModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowABTestModal(false)}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowABTestModal(false)}
+        >
           <div className="bg-white rounded-xl w-96 max-w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b pb-2 mb-3">
               <h3 className="text-lg font-semibold">
