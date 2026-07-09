@@ -61,12 +61,23 @@ import TeamManagement from './pages/TeamManagement';
 
 import BotBuilder from './pages/BotBuilder';
 import BotAnalytics from './pages/BotAnalytics';
-// Facebook Marketing pages
+
+// Facebook Marketing pages (Phase 01–04)
 import FacebookPostCreator from './pages/facebook/PostCreator';
 import FacebookPageManager from './pages/facebook/PageManager';
 import FacebookPostList from './pages/facebook/PostList';
 import BoostList from './pages/facebook/BoostList';
 
+// Facebook Marketing – Phase 05–11 (aliased to avoid conflicts)
+import FacebookCampaigns from './pages/facebook/Campaigns';
+import FacebookCampaignDetail from './pages/facebook/CampaignDetail';
+import FacebookCampaignCreate from './pages/facebook/CampaignCreate';
+import FacebookAudiences from './pages/facebook/Audiences';
+import FacebookAdCreatives from './pages/facebook/AdCreatives';
+import FacebookAnalytics from './pages/facebook/Analytics';
+import FacebookLeadAttribution from './pages/facebook/LeadAttribution';
+import FacebookROI from './pages/facebook/ROI';
+import FacebookAIWizard from './pages/facebook/AIWizard';
 
 function App() {
   return (
@@ -98,7 +109,7 @@ function App() {
           <Route path="/admin/permissions" element={<ProtectedRoute allowedRoles={['super_admin']}><PermissionMatrix /></ProtectedRoute>} />
           <Route path="/admin/UserPermissions" element={<ProtectedRoute allowedRoles={['super_admin']}><UserPermissions /></ProtectedRoute>} />
 
-          {/* Organization routes – now accessible by any authenticated user (agent, viewer, org_admin) */}
+          {/* Organization routes */}
           <Route path="/dashboard" element={<ProtectedRoute><OrgDashboard /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute requiredRole="org_admin"><Customers /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
@@ -125,17 +136,30 @@ function App() {
           <Route path="/partner-dashboard" element={<ProtectedRoute requiredRole="partner"><PartnerDashboard /></ProtectedRoute>} />
           <Route path="/partner-signup" element={<PartnerSignup />} />
 
-          {/* Team Management – only for org_admin */}
+          {/* Team Management */}
           <Route path="/team" element={<ProtectedRoute requiredRole="org_admin"><TeamManagement /></ProtectedRoute>} />
 
-          {/* Bot Builder – wrapped with Layout to show sidebar & header */}
+          {/* Bot Builder */}
           <Route path="/bot-builder" element={<ProtectedRoute requiredRole="org_admin"><BotBuilder /></ProtectedRoute>} />
           <Route path="/bot-analytics" element={<ProtectedRoute requiredRole="org_admin"><BotAnalytics /></ProtectedRoute>} />
-          {/* Facebook Marketing routes */}
+
+          {/* ====== Facebook Marketing ====== */}
+          {/* Phase 01–04 */}
           <Route path="/facebook/posts" element={<ProtectedRoute requiredRole="org_admin"><FacebookPostCreator /></ProtectedRoute>} />
           <Route path="/facebook/pages" element={<ProtectedRoute requiredRole="org_admin"><FacebookPageManager /></ProtectedRoute>} />
           <Route path="/facebook/posts/list" element={<ProtectedRoute requiredRole="org_admin"><FacebookPostList /></ProtectedRoute>} />
-          <Route path="/facebook/boosts" element={<ProtectedRoute requiredRole="org_admin"><BoostList /></ProtectedRoute>}/>
+          <Route path="/facebook/boosts" element={<ProtectedRoute requiredRole="org_admin"><BoostList /></ProtectedRoute>} />
+
+          {/* Phase 05–11 (aliased) */}
+          <Route path="/facebook/campaigns" element={<ProtectedRoute requiredRole="org_admin"><FacebookCampaigns /></ProtectedRoute>} />
+          <Route path="/facebook/campaigns/:id" element={<ProtectedRoute requiredRole="org_admin"><FacebookCampaignDetail /></ProtectedRoute>} />
+          <Route path="/facebook/campaigns/create" element={<ProtectedRoute requiredRole="org_admin"><FacebookCampaignCreate /></ProtectedRoute>} />
+          <Route path="/facebook/audiences" element={<ProtectedRoute requiredRole="org_admin"><FacebookAudiences /></ProtectedRoute>} />
+          <Route path="/facebook/creatives" element={<ProtectedRoute requiredRole="org_admin"><FacebookAdCreatives /></ProtectedRoute>} />
+          <Route path="/facebook/analytics" element={<ProtectedRoute requiredRole="org_admin"><FacebookAnalytics /></ProtectedRoute>} />
+          <Route path="/facebook/leads" element={<ProtectedRoute requiredRole="org_admin"><FacebookLeadAttribution /></ProtectedRoute>} />
+          <Route path="/facebook/roi" element={<ProtectedRoute requiredRole="org_admin"><FacebookROI /></ProtectedRoute>} />
+          <Route path="/facebook/ai" element={<ProtectedRoute requiredRole="org_admin"><FacebookAIWizard /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

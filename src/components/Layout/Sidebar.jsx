@@ -52,15 +52,15 @@ const Sidebar = () => {
   const leadsSubItems = [
     { path: '/leads', name: 'Leads', icon: '🎯', permission: 'manage_leads' },
     { path: '/lead-schemas', name: 'Lead Schemas', icon: '🧩', permission: 'manage_leads' },
-    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' }
+    { path: '/nurturing', name: 'Lead Nurturing', icon: '🌱', permission: 'manage_leads' },
+    { path: '/custom-fields', name: 'Custom Fields', icon: '📋', permission: 'manage_leads' },
   ];
 
   // Mini‑AI sub‑items
   const miniAiSubItems = [
-    { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_ai_prompts' },
-    { path: '/custom-fields', name: 'Custom Fields', icon: '📋' },
-    { path: '/bot-builder', name: 'Bot Builder', icon: '🤖', permission: 'view_analytics' },
-    { path: '/bot-analytics', name: 'Bot Analytics', icon: '📊', permission: 'view_analytics' }
+    { path: '/conversation-flows', name: 'Conversation Flows', icon: '🛠️', permission: 'manage_bot_builder' },
+    { path: '/bot-builder', name: 'Bot Builder', icon: '🤖', permission: 'manage_bot_builder' },
+    { path: '/bot-analytics', name: 'Bot Analytics', icon: '📊', permission: 'manage_bot_builder' }
   ];
 
   // AI sub‑items
@@ -74,23 +74,28 @@ const Sidebar = () => {
   // For now, only Facebook has actual routes; others are placeholders.
 // Digital Marketing sub‑items (Facebook, Instagram, LinkedIn)
 // For now, only Facebook has actual routes; others are placeholders.
-  const digitalMarketingSubItems = [
- { path: '/facebook/posts', name: 'Post Creator', icon: '📝', permission: 'manage_campaigns' },
-    { path: '/facebook/posts/list', name: 'Post List', icon: '📋', permission: 'manage_campaigns' },
-    { path: '/facebook/boosts', name: 'Boost History', icon: '🚀', permission: 'manage_campaigns' },
-    { path: '/facebook/pages', name: 'Page Manager', icon: '📄', permission: 'manage_campaigns' },
-    { path: '/instagram/posts', name: 'Instagram (coming soon)', icon: '📸', permission: 'manage_campaigns' },
-    { path: '/linkedin/posts', name: 'LinkedIn (coming soon)', icon: '🔗', permission: 'manage_campaigns' }
-  ];
+  // Add new menu items under Digital Marketing
+    const digitalMarketingSubItems = [
+      { path: '/facebook/posts', name: 'Post Creator', icon: '📝', permission: 'manage_campaigns' },
+      { path: '/facebook/posts/list', name: 'Post List', icon: '📋', permission: 'manage_campaigns' },
+      { path: '/facebook/boosts', name: 'Boost History', icon: '🚀', permission: 'manage_campaigns' },
+      { path: '/facebook/pages', name: 'Page Manager', icon: '📄', permission: 'manage_campaigns' },
+      { path: '/facebook/campaigns', name: 'Campaigns', icon: '📊', permission: 'manage_campaigns' },
+      { path: '/facebook/audiences', name: 'Audiences', icon: '🎯', permission: 'manage_campaigns' },
+      { path: '/facebook/creatives', name: 'Ad Creatives', icon: '🎨', permission: 'manage_campaigns' },
+      { path: '/facebook/analytics', name: 'Analytics', icon: '📈', permission: 'manage_campaigns' },
+      { path: '/facebook/leads', name: 'Leads', icon: '👤', permission: 'manage_campaigns' },
+      { path: '/facebook/roi', name: 'ROI', icon: '💰', permission: 'manage_campaigns' },
+      { path: '/facebook/ai', name: 'AI Wizard', icon: '🤖', permission: 'manage_campaigns' },
+      { path: '/instagram/posts', name: 'Instagram (coming soon)', icon: '📸', permission: 'manage_campaigns' },
+      { path: '/linkedin/posts', name: 'LinkedIn (coming soon)', icon: '🔗', permission: 'manage_campaigns' }
+    ];
   // Settings sub‑items
   const settingsSubItems = userRole === 'org_admin'
     ? [
         { path: '/team', name: 'Team Members', icon: '👥' },
         { path: '/profile', name: 'Profile', icon: '👤' },
         { path: '/channels', name: 'API Keys', icon: '🔑' },
-        { path: '/integrations', name: 'Integrations', icon: '🔌' },
-        { path: '/notifications', name: 'Notifications', icon: '🔔' },
-        { path: '/security', name: '2FA & Security', icon: '🛡️' }
       ]
     : [
         { path: '/profile', name: 'Profile', icon: '👤' },
