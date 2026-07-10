@@ -3,13 +3,13 @@ import api from './api';
 // If you need API_BASE_URL elsewhere, define it; but we'll use api instance.
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export const fetchConversations = () => api.get('/api/conversations');
+export const fetchConversations = (filterType = 'all') => api.get(`/api/conversations${filterType && filterType !== 'all' ? `?filter=${encodeURIComponent(filterType)}` : ''}`);
 
 export const createConversation = (phoneNumber) =>
   api.post('/api/conversations', { phone_number: phoneNumber });
 
-export const searchConversations = (searchTerm) =>
-  api.get(`/api/conversations/search?q=${encodeURIComponent(searchTerm)}`);
+export const searchConversations = (searchTerm, searchType = 'name_phone') =>
+  api.get(`/api/conversations/search?q=${encodeURIComponent(searchTerm)}&search_type=${encodeURIComponent(searchType)}`);
 
 export const fetchConversationMessages = (convId, limit = 50, offset = 0) =>
   api.get(`/api/conversations/${convId}/messages?limit=${limit}&offset=${offset}`);
@@ -40,6 +40,11 @@ export const addConversationNote = (convId, note) =>
   api.post(`/api/conversations/${convId}/notes`, { note });
 
 export const listOrgTags = () => api.get('/api/conversations/tags');
+
+export const listQuickReplies = (q) => api.get(`/api/quick-replies${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+export const createQuickReply = (payload) => api.post('/api/quick-replies', payload);
+export const updateQuickReply = (id, payload) => api.put(`/api/quick-replies/${id}`, payload);
+export const deleteQuickReply = (id) => api.delete(`/api/quick-replies/${id}`);
 
 export const createOrgTag = (name, color = '#4F46E5') =>
   api.post('/api/conversations/tags', { name, color });

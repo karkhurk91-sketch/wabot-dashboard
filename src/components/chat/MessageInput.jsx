@@ -1,13 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import useMediaUpload from '../../hooks/useMediaUpload';
 import EmojiPickerPanel from './EmojiPickerPanel';
 import LocationPickerModal from './LocationPickerModal';
+import { listQuickReplies } from '../../services/chatApi';
 
 const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [quickReplies, setQuickReplies] = useState([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
   const inputRef = useRef(null);
 
   const mediaUpload = useMediaUpload();
@@ -69,6 +73,22 @@ const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
     setShowLocationPicker(false);
   };
 
+  useEffect(() => {
+    const loadReplies = async () => {
+      try {
+        setLoadingReplies(true);
+        const { data } = await listQuickReplies();
+        setQuickReplies(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load quick replies', err);
+      } finally {
+        setLoadingReplies(false);
+      }
+    };
+
+    loadReplies();
+  }, []);
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -80,6 +100,12 @@ const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
   const onEmojiSelect = (emoji) => {
     setMessage((prev) => prev + emoji.emoji);
     setShowEmoji(false);
+    inputRef.current?.focus();
+  };
+
+  const insertQuickReply = (reply) => {
+    setMessage(reply.content);
+    setShowQuickReplies(false);
     inputRef.current?.focus();
   };
 
@@ -153,6 +179,39 @@ const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
             😊
           </button>
           {showEmoji && <EmojiPickerPanel onEmojiClick={onEmojiSelect} />}
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowQuickReplies((prev) => !prev)}
+            className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-300"
+          >
+            ✉️ Replies
+          </button>
+          {showQuickReplies && (
+            <div className="absolute bottom-12 left-0 z-20 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+              {loadingReplies ? (
+                <p className="px-2 py-3 text-sm text-slate-500">Loading replies…</p>
+              ) : quickReplies.length === 0 ? (
+                <p className="px-2 py-3 text-sm text-slate-500">No quick replies yet.</p>
+              ) : (
+                <div className="max-h-56 space-y-1 overflow-y-auto">
+                  {quickReplies.map((reply) => (
+                    <button
+                      key={reply.id}
+                      type="button"
+                      onClick={() => insertQuickReply(reply)}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      <div className="font-medium text-slate-800 dark:text-slate-100">{reply.name}</div>
+                      <div className="mt-1 line-clamp-2 text-xs text-slate-500">{reply.content}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <textarea

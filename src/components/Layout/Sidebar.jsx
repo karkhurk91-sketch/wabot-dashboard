@@ -44,6 +44,7 @@ const Sidebar = () => {
   // WhatsApp sub‑items
   const whatsappSubItems = [
     { path: '/conversations', name: 'Index', icon: '💬', permission: 'manage_conversations' },
+    { path: '/quick-replies', name: 'Quick Replies', icon: '⚡', permission: 'manage_conversations' },
     { path: '/whatsapp-templates', name: 'WhatsApp Templates', icon: '📋', permission: 'manage_templates' },
     { path: '/broadcast', name: 'Broadcast', icon: '📢', permission: 'manage_broadcast' }
   ];

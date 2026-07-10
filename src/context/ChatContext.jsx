@@ -25,6 +25,16 @@ const chatReducer = (state, action) => {
       return { ...state, messagesLoading: action.payload };
     case 'SET_CONVERSATIONS':
       return { ...state, conversations: action.payload };
+    case 'UPDATE_CONVERSATION_META':
+      return {
+        ...state,
+        conversations: state.conversations.map((conv) =>
+          conv.id === action.payload.id ? { ...conv, ...action.payload.updates } : conv
+        ),
+        selectedConversation: state.selectedConversation?.id === action.payload.id
+          ? { ...state.selectedConversation, ...action.payload.updates }
+          : state.selectedConversation,
+      };
     case 'SET_SELECTED_CONVERSATION':
       return { ...state, selectedConversation: action.payload };
     case 'SET_MESSAGES':

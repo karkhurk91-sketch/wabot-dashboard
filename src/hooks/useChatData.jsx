@@ -5,10 +5,15 @@ import * as chatApi from '../services/chatApi';
 export const useChatData = () => {
   const { state, dispatch } = useChat();
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (filterType = 'all', searchQuery = '', searchMode = 'name_phone') => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const response = await chatApi.fetchConversations();
+      let response;
+      if (searchQuery?.trim()) {
+        response = await chatApi.searchConversations(searchQuery.trim(), searchMode);
+      } else {
+        response = await chatApi.fetchConversations(filterType);
+      }
       const conversations = Array.isArray(response.data) ? response.data : [];
       dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
       return conversations;
@@ -295,11 +300,11 @@ export const useChatData = () => {
   );
 
   const searchConversations = useCallback(
-    async (searchTerm) => {
+    async (searchTerm, searchMode = 'name_phone') => {
       if (!searchTerm?.trim()) return [];
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
-        const response = await chatApi.searchConversations(searchTerm.trim());
+        const response = await chatApi.searchConversations(searchTerm.trim(), searchMode);
         const conversations = Array.isArray(response.data) ? response.data : [];
         return conversations;
       } catch (error) {

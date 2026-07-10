@@ -50,6 +50,7 @@ import CampaignDetail from './pages/CampaignDetail';
 import WhatsAppTemplates from './pages/WhatsAppTemplates';
 import CustomFields from './pages/CustomFields';
 import ConversationFlows from './pages/ConversationFlows';
+import QuickReplies from './pages/QuickReplies';
 
 // Partner pages
 import AdminPartners from './pages/AdminPartners';
@@ -130,6 +131,7 @@ function App() {
           <Route path="/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
           <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
           <Route path="/conversation-flows" element={<ProtectedRoute requiredRole="org_admin"><ConversationFlows /></ProtectedRoute>} />
+          <Route path="/quick-replies" element={<ProtectedRoute><QuickReplies /></ProtectedRoute>} />
 
           {/* Partner routes */}
           <Route path="/admin/partners" element={<ProtectedRoute requiredRole="super_admin"><AdminPartners /></ProtectedRoute>} />

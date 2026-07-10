@@ -18,6 +18,7 @@ const ConversationsContent = () => {
   const { user } = useAuth(); // for org_id and token
   const {
     loadConversations,
+    searchConversations,
     selectConversation,
     loadMessages,
     sendText,
@@ -32,6 +33,7 @@ const ConversationsContent = () => {
   } = useChatData();
 
   const [filter, setFilter] = useState('all');
+  const [searchType, setSearchType] = useState('name_phone');
   const [counts, setCounts] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredConversations, setFilteredConversations] = useState([]);
@@ -56,17 +58,21 @@ const ConversationsContent = () => {
   }, [filter]);
 
   useEffect(() => {
-    if (searchTerm) {
-      setFilteredConversations(
-        conversations.filter(c =>
-          c.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.customer_phone_number?.includes(searchTerm)
-        )
-      );
-    } else {
-      setFilteredConversations(conversations);
-    }
-  }, [searchTerm, conversations]);
+    const runSearch = async () => {
+      if (!searchTerm.trim()) {
+        setFilteredConversations(conversations);
+        return;
+      }
+      try {
+        const results = await searchConversations(searchTerm.trim(), searchType);
+        setFilteredConversations(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Search failed', error);
+        setFilteredConversations([]);
+      }
+    };
+    runSearch();
+  }, [searchTerm, searchType, conversations, searchConversations]);
 
   useEffect(() => {
     const fetchLead = async () => {
@@ -177,6 +183,8 @@ const ConversationsContent = () => {
           onSelect={handleSelectConversation}
           searchTerm={searchTerm}
           onSearch={setSearchTerm}
+          searchType={searchType}
+          onSearchTypeChange={setSearchType}
         />
         <ChatWindow
           conversation={selectedConversation}

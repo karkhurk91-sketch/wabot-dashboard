@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import MessageInput from './MessageInput';
+import { getDateLabel } from '../../utils/timeFormatter'; // new import
 
 const ChatWindow = ({
   conversation,
@@ -50,6 +51,20 @@ const ChatWindow = ({
     );
   }
 
+  // Group messages by date
+  const groupedMessages = [];
+  let lastDate = null;
+  messages.forEach((msg) => {
+    const ts = msg.sort_timestamp || msg.created_at;
+    if (!ts) return;
+    const dateLabel = getDateLabel(ts);
+    if (dateLabel !== lastDate) {
+      groupedMessages.push({ type: 'date', label: dateLabel });
+      lastDate = dateLabel;
+    }
+    groupedMessages.push({ type: 'message', data: msg });
+  });
+
   return (
     <div className="flex-1 flex flex-col bg-[#efeae2] h-full overflow-hidden">
       {/* Chat Header */}
@@ -80,7 +95,17 @@ const ChatWindow = ({
         className="flex-1 overflow-y-auto p-4 space-y-3"
       >
         {loading && <div className="text-center text-gray-400">Loading messages...</div>}
-        {messages.map((msg) => {
+        {groupedMessages.map((item, index) => {
+          if (item.type === 'date') {
+            return (
+              <div key={`date-${index}`} className="flex justify-center my-2">
+                <span className="bg-gray-300 text-gray-700 text-xs px-4 py-1 rounded-full font-medium">
+                  {item.label}
+                </span>
+              </div>
+            );
+          }
+          const msg = item.data;
           const userId = user?.user_id ?? user?.id;
           const isOwn = Boolean(
             (msg.sender_id && userId && String(msg.sender_id) === String(userId)) ||

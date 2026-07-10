@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { formatFileSize, getMediaLabel, isMediaMessage } from '../../utils/chatUtils';
 import { formatTimestampToIST, isTempMessage } from '../../utils/messageUtils';
+import { formatMessageTime } from '../../utils/timeFormatter'; // Use message time formatter
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -48,11 +49,10 @@ const MessageBubble = ({ message, isOwn }) => {
     }
   }
 
-  // Use sort_timestamp if available, fallback to created_at
   const timestamp = message.sort_timestamp || message.created_at;
-  const timeString = timestamp ? formatTimestampToIST(timestamp) : '';
+  const displayTime = timestamp ? formatMessageTime(timestamp) : '';
+  const absoluteTime = timestamp ? formatTimestampToIST(timestamp) : '';
 
-  // Handle location messages (optional Phase 7 enhancement)
   const isLocation = message.message_type === 'location';
   const locationLat = message.latitude || (message.content ? parseCoordinates(message.content)?.lat : null);
   const locationLng = message.longitude || (message.content ? parseCoordinates(message.content)?.lng : null);
@@ -124,7 +124,9 @@ const MessageBubble = ({ message, isOwn }) => {
         {!isLocation && bodyText && <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{bodyText}</div>}
 
         <div className="flex items-center justify-end gap-1 mt-1">
-          <span className="text-[11px] text-gray-500">{timeString}</span>
+          <span className="text-[11px] text-gray-500" title={absoluteTime}>
+            {displayTime}
+          </span>
           {isOwn && tick && <span className={`text-[12px] ${tickColor}`}>{tick}</span>}
         </div>
       </div>
