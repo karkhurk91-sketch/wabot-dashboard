@@ -1,5 +1,5 @@
 // src/components/chat/ChatWindow.jsx
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
@@ -18,6 +18,8 @@ const ChatWindow = ({
 }) => {
   const { user, userRole } = useAuth();
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [replyTo, setReplyTo] = useState(null);
+  const [highlightedMessage, setHighlightedMessage] = useState(null);
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -42,6 +44,32 @@ const ChatWindow = ({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const handleSendWithReply = async (text, formData, onUploadProgress, replyToId = null) => {
+    return onSend(text, formData, onUploadProgress, replyToId);
+  };
+
+  const handleReply = (message) => {
+    setReplyTo(message);
+  };
+
+  useEffect(() => {
+    setReplyTo(null);
+    setHighlightedMessage(null);
+  }, [conversation?.id]);
+
+  const clearReply = () => {
+    setReplyTo(null);
+  };
+
+  const handleQuoteClick = useCallback((messageId) => {
+    const target = containerRef.current?.querySelector(`[data-message-id=\"${messageId}\"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessage(messageId);
+      window.setTimeout(() => setHighlightedMessage(null), 1800);
+    }
+  }, []);
 
   if (!conversation) {
     return (
@@ -113,7 +141,16 @@ const ChatWindow = ({
             msg.direction === 'outbound' ||
             msg.direction === 'outgoing'
           );
-          return <MessageBubble key={msg.id} message={msg} isOwn={isOwn} />;
+          return (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOwn={isOwn}
+              onReply={handleReply}
+              onQuoteClick={handleQuoteClick}
+              highlighted={highlightedMessage === msg.id}
+            />
+          );
         })}
         {typing && <TypingIndicator active />}
         <div ref={messagesEndRef} />
@@ -121,7 +158,36 @@ const ChatWindow = ({
 
       {/* Message Input */}
       <div className="bg-white p-3 border-t border-gray-200">
-        <MessageInput onSend={onSend} onSendLocation={onSendLocation} onMessageSent={onMessageSent} disabled={!canSend} />
+        {replyTo && (
+          <div className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Replying to</div>
+                <div className="mt-1 text-sm font-medium text-slate-900">
+                  {replyTo.sender_type === 'outbound' ? 'You' : 'Contact'}
+                </div>
+                <div className="mt-1 text-sm text-slate-600 line-clamp-2">
+                  {replyTo.text || replyTo.content || 'Quoted message'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearReply}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        <MessageInput
+          onSend={handleSendWithReply}
+          onSendLocation={onSendLocation}
+          onMessageSent={onMessageSent}
+          disabled={!canSend}
+          replyTo={replyTo}
+          onClearReply={clearReply}
+        />
       </div>
 
       {/* Scroll to bottom button */}

@@ -36,7 +36,7 @@ const ConversationsContent = () => {
   const [searchType, setSearchType] = useState('name_phone');
   const [counts, setCounts] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredConversations, setFilteredConversations] = useState([]);
+  const [filteredConversations, setFilteredConversations] = useState(null);
   const [leadData, setLeadData] = useState(null);
 
   // Disable scrolling on main element
@@ -53,7 +53,13 @@ const ConversationsContent = () => {
   }, []);
 
   useEffect(() => {
-    loadConversations(filter);
+    const fetchList = async () => {
+      const list = await loadConversations(filter);
+      if (!searchTerm.trim()) {
+        setFilteredConversations(list);
+      }
+    };
+    fetchList();
     fetchCounts();
   }, [filter]);
 
@@ -109,12 +115,12 @@ const ConversationsContent = () => {
     }
   };
 
-  const handleSend = async (text, formData, onUploadProgress) => {
+  const handleSend = async (text, formData, onUploadProgress, replyToId = null) => {
     if (!selectedConversation) return null;
     if (formData) {
-      return sendMedia(selectedConversation.id, formData, onUploadProgress);
+      return sendMedia(selectedConversation.id, formData, onUploadProgress, replyToId);
     }
-    return sendText(selectedConversation.id, text, 'agent');
+    return sendText(selectedConversation.id, text, 'agent', replyToId);
   };
 
   const handleLoadOlder = async () => {
@@ -178,13 +184,15 @@ const ConversationsContent = () => {
       <StatisticsBar counts={counts} activeFilter={filter} onFilterChange={setFilter} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <ConversationList
-          conversations={filteredConversations}
+          conversations={filteredConversations || []}
           activeId={selectedConversation?.id}
           onSelect={handleSelectConversation}
           searchTerm={searchTerm}
           onSearch={setSearchTerm}
           searchType={searchType}
           onSearchTypeChange={setSearchType}
+          loading={loading}
+          error={state.error}
         />
         <ChatWindow
           conversation={selectedConversation}

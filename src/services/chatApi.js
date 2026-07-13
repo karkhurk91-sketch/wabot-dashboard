@@ -14,10 +14,11 @@ export const searchConversations = (searchTerm, searchType = 'name_phone') =>
 export const fetchConversationMessages = (convId, limit = 50, offset = 0) =>
   api.get(`/api/conversations/${convId}/messages?limit=${limit}&offset=${offset}`);
 
-export const sendTextMessage = (convId, text, senderType) =>
+export const sendTextMessage = (convId, text, senderType, replyToId = null) =>
   api.post(`/api/conversations/${convId}/messages`, {
     text,
     sender_type: senderType,
+    reply_to_id: replyToId,
   });
 
 export const sendMediaMessage = (convId, formData, onUploadProgress) =>

@@ -96,10 +96,10 @@ export const useChatData = () => {
   );
 
   const sendText = useCallback(
-    async (conversationId, text, senderType) => {
+    async (conversationId, text, senderType, replyToId = null) => {
       if (!conversationId || !text) return null;
       try {
-        const response = await chatApi.sendTextMessage(conversationId, text, senderType);
+        const response = await chatApi.sendTextMessage(conversationId, text, senderType, replyToId);
         await loadMessages(conversationId, true);
         const list = await loadConversations();
         syncSelectedConversation(list, conversationId);
@@ -113,13 +113,16 @@ export const useChatData = () => {
   );
 
   const sendMedia = useCallback(
-    async (conversationId, formData, onUploadProgress) => {
-      console.log('useChatData - sendMedia called', { conversationId, formData: !!formData });
+    async (conversationId, formData, onUploadProgress, replyToId = null) => {
+      console.log('useChatData - sendMedia called', { conversationId, formData: !!formData, replyToId });
       if (!conversationId || !formData) {
         console.error('useChatData - sendMedia missing required params', { conversationId, formData });
         return null;
       }
       try {
+        if (replyToId) {
+          formData.append('reply_to_id', replyToId);
+        }
         console.log('useChatData - calling chatApi.sendMediaMessage...');
         const response = await chatApi.sendMediaMessage(conversationId, formData, onUploadProgress);
         console.log('useChatData - sendMediaMessage response:', response);

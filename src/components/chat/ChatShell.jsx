@@ -99,12 +99,12 @@ const ChatShell = () => {
 
 
   const handleSend = useCallback(
-    async (text, formData, onUploadProgress) => {
+    async (text, formData, onUploadProgress, replyToId = null) => {
       if (!selectedConversation) return null;
       if (formData) {
-        return sendMedia(selectedConversation.id, formData, onUploadProgress);
+        return sendMedia(selectedConversation.id, formData, onUploadProgress, replyToId);
       }
-      return sendText(selectedConversation.id, text, 'agent');
+      return sendText(selectedConversation.id, text, 'agent', replyToId);
     },
     [selectedConversation, sendMedia, sendText]
   );
@@ -207,7 +207,7 @@ const ChatShell = () => {
               messages={messages}
               messagesLoading={messagesLoading}
               typing={typing}
-              onScroll={handleLoadOlder}
+              onLoadOlder={handleLoadOlder}
               onSend={handleSend}
               onOpenDetails={() => setDrawerOpen(true)}
               onMessageSent={handleMessageSent}

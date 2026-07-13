@@ -4,7 +4,7 @@ import EmojiPickerPanel from './EmojiPickerPanel';
 import LocationPickerModal from './LocationPickerModal';
 import { listQuickReplies } from '../../services/chatApi';
 
-const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
+const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent, replyTo, onClearReply }) => {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -38,13 +38,16 @@ const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
         console.error('FormData missing file - aborting send');
         return;
       }
+      if (replyTo?.id) {
+        formData.append('reply_to_id', replyTo.id);
+      }
       setUploading(true);
       try {
         response = await onSend(message.trim(), formData, (progressEvent) => {
           if (!progressEvent.lengthComputable) return;
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           updateProgress(percent);
-        });
+        }, replyTo?.id);
         clearAttachment();
         setShowAttachmentMenu(false);
       } catch (err) {
@@ -54,11 +57,15 @@ const MessageInput = ({ onSend, onSendLocation, onTyping, onMessageSent }) => {
         setUploading(false);
       }
     } else {
-      response = await onSend(message.trim(), null);
+      response = await onSend(message.trim(), null, null, replyTo?.id);
     }
 
     if (response && onMessageSent) {
       onMessageSent(response);
+    }
+
+    if (response && onClearReply) {
+      onClearReply();
     }
 
     setMessage('');
