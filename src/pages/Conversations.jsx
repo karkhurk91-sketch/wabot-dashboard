@@ -36,8 +36,8 @@ const ConversationsContent = () => {
   const [searchType, setSearchType] = useState('name_phone');
   const [counts, setCounts] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredConversations, setFilteredConversations] = useState(null);
-  const [leadData, setLeadData] = useState(null);
+  // ✅ GOOD
+  const [filteredConversations, setFilteredConversations] = useState([]);  const [leadData, setLeadData] = useState(null);
 
   // Disable scrolling on main element
   useEffect(() => {
@@ -52,16 +52,17 @@ const ConversationsContent = () => {
     };
   }, []);
 
+  // ✅ GOOD
   useEffect(() => {
     const fetchList = async () => {
       const list = await loadConversations(filter);
       if (!searchTerm.trim()) {
-        setFilteredConversations(list);
+        setFilteredConversations(list || []);
       }
     };
     fetchList();
     fetchCounts();
-  }, [filter]);
+  }, [filter, searchTerm]);  // ← added searchTerm
 
   useEffect(() => {
     const runSearch = async () => {

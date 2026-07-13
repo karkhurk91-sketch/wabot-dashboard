@@ -21,10 +21,15 @@ export const sendTextMessage = (convId, text, senderType, replyToId = null) =>
     reply_to_id: replyToId,
   });
 
-export const sendMediaMessage = (convId, formData, onUploadProgress) =>
-  api.post(`/api/conversations/${convId}/media`, formData, {
+export const sendMediaMessage = (convId, formData, onUploadProgress, replyToId = null) => {
+  // If replyToId is provided, append it to formData
+  if (replyToId) {
+    formData.append('reply_to_id', replyToId);
+  }
+  return api.post(`/api/conversations/${convId}/media`, formData, {
     onUploadProgress,
   });
+};
 
 export const fetchConversationNotes = (convId) => api.get(`/api/conversations/${convId}/notes`);
 export const fetchConversationTags = (convId) => api.get(`/api/conversations/${convId}/tags`);

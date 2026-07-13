@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { formatFileSize, getMediaLabel, isMediaMessage } from '../../utils/chatUtils';
 import { formatTimestampToIST, isTempMessage } from '../../utils/messageUtils';
-import { formatMessageTime } from '../../utils/timeFormatter'; // Use message time formatter
+import { formatMessageTime } from '../../utils/timeFormatter';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -10,6 +10,7 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted }) =
   const isSending = message.status === 'sending' || isTempMessage(message);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0 });
+  const [showHoverReply, setShowHoverReply] = useState(false);
   const touchTimeout = useRef(null);
   const bubbleRef = useRef(null);
 
@@ -120,7 +121,25 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted }) =
       onTouchEnd={handleTouchEnd}
       ref={bubbleRef}
     >
-      <div className={`relative max-w-[70%] ${isOwn ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'} px-3 py-2 shadow-sm ${isOwn ? 'bg-[#dcf8c5] text-gray-800' : 'bg-white text-gray-800'} ${highlighted ? 'ring-2 ring-emerald-400' : ''}`}>
+      <div
+        className={`relative max-w-[70%] ${isOwn ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'} px-3 py-2 shadow-sm ${isOwn ? 'bg-[#dcf8c5] text-gray-800' : 'bg-white text-gray-800'} ${highlighted ? 'ring-2 ring-emerald-400' : ''}`}
+        onMouseEnter={() => setShowHoverReply(true)}
+        onMouseLeave={() => setShowHoverReply(false)}
+      >
+        {/* Hover Reply Button (visible only for incoming messages) */}
+        {!isOwn && onReply && (
+          <button
+            onClick={() => onReply(message)}
+            className={`absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-all duration-200 ${
+              showHoverReply ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+            }`}
+            title="Reply"
+            type="button"
+          >
+            <i className="fas fa-reply text-gray-600 text-sm"></i>
+          </button>
+        )}
+
         {quoted && (
           <button
             type="button"
@@ -195,6 +214,7 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted }) =
           {isOwn && tick && <span className={`text-[12px] ${tickColor}`}>{tick}</span>}
         </div>
 
+        {/* Context Menu */}
         {menuVisible && (
           <div
             className="absolute z-20 rounded-xl border border-slate-200 bg-white shadow-xl"
