@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import MessageInput from './MessageInput';
-import { getDateLabel } from '../../utils/timeFormatter'; // new import
+import { getDateLabel } from '../../utils/timeFormatter';
 
 const ChatWindow = ({
   conversation,
@@ -15,6 +15,7 @@ const ChatWindow = ({
   onSendLocation,
   onMessageSent,
   onLoadOlder,
+  customer, // ✅ New prop: customer data from leadData
 }) => {
   const { user, userRole } = useAuth();
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -24,6 +25,16 @@ const ChatWindow = ({
   const containerRef = useRef(null);
 
   const phoneNumber = conversation?.customer_phone_number || conversation?.phone || '';
+
+  // ✅ Derive display name with priority: name > phone > email > fallback
+  const displayName = 
+    customer?.name || 
+    conversation?.customer_name || 
+    phoneNumber || 
+    customer?.phone_number || 
+    customer?.email || 
+    'Unknown';
+
   const canSend = userRole === 'org_admin' || conversation?.assigned_agent_id === user?.id;
 
   useEffect(() => {
@@ -63,7 +74,7 @@ const ChatWindow = ({
   };
 
   const handleQuoteClick = useCallback((messageId) => {
-    const target = containerRef.current?.querySelector(`[data-message-id=\"${messageId}\"]`);
+    const target = containerRef.current?.querySelector(`[data-message-id="${messageId}"]`);
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setHighlightedMessage(messageId);
@@ -99,10 +110,10 @@ const ChatWindow = ({
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-            {conversation.customer_name?.charAt(0) || '?'}
+            {displayName.charAt(0).toUpperCase() || '?'}
           </div>
           <div>
-            <h2 className="font-semibold text-gray-800">{conversation.customer_name || 'Unknown'}</h2>
+            <h2 className="font-semibold text-gray-800">{displayName}</h2>
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-phone-alt text-green-600"></i> {phoneNumber}
               <span className="mx-1">•</span>
@@ -141,11 +152,14 @@ const ChatWindow = ({
             msg.direction === 'outbound' ||
             msg.direction === 'outgoing'
           );
+          // ✅ Pass displayName as senderName for incoming messages
+          const senderName = !isOwn ? displayName : null;
           return (
             <MessageBubble
               key={msg.id}
               message={msg}
               isOwn={isOwn}
+              senderName={senderName}
               onReply={handleReply}
               onQuoteClick={handleQuoteClick}
               highlighted={highlightedMessage === msg.id}

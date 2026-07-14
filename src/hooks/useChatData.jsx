@@ -56,18 +56,19 @@ export const useChatData = () => {
   }, [dispatch]);
 
   const loadMessages = useCallback(
-    async (conversationId, reset = false) => {
+    async (conversationId, reset = false, offset = 0) => {
       if (!conversationId) return 0;
       dispatch({ type: 'SET_MESSAGES_LOADING', payload: true });
       try {
         const limit = 50;
-        const offset = reset ? 0 : state.messages.length;
-        const response = await chatApi.fetchConversationMessages(conversationId, limit, offset);
+        const actualOffset = reset ? 0 : offset;
+        const response = await chatApi.fetchConversationMessages(conversationId, limit, actualOffset);
         const messages = Array.isArray(response.data) ? response.data.filter(m => m && typeof m === 'object') : [];
         if (reset) {
           dispatch({ type: 'SET_MESSAGES', payload: messages });
         } else {
-          dispatch({ type: 'APPEND_MESSAGES', payload: messages });
+          // Prepend older messages (so they appear before existing messages)
+          dispatch({ type: 'PREPEND_MESSAGES', payload: messages });
         }
         return messages.length;
       } catch (error) {
@@ -80,7 +81,7 @@ export const useChatData = () => {
         dispatch({ type: 'SET_MESSAGES_LOADING', payload: false });
       }
     },
-    [dispatch, state.messages.length]
+    [dispatch]
   );
 
   const selectConversation = useCallback(
@@ -100,6 +101,7 @@ export const useChatData = () => {
       if (!conversationId || !text) return null;
       try {
         const response = await chatApi.sendTextMessage(conversationId, text, senderType, replyToId);
+        // Reload messages to show the new message (WebSocket will also update, but this ensures freshness)
         await loadMessages(conversationId, true);
         const list = await loadConversations();
         syncSelectedConversation(list, conversationId);
@@ -124,7 +126,7 @@ export const useChatData = () => {
           formData.append('reply_to_id', replyToId);
         }
         console.log('useChatData - calling chatApi.sendMediaMessage...');
-        const response = await chatApi.sendMediaMessage(conversationId, formData, onUploadProgress);
+        const response = await chatApi.sendMediaMessage(conversationId, formData, onUploadProgress, replyToId);
         console.log('useChatData - sendMediaMessage response:', response);
         await loadMessages(conversationId, true);
         const list = await loadConversations();
@@ -257,19 +259,13 @@ export const useChatData = () => {
     async (conversationId, mode) => {
       if (!conversationId || !mode) return false;
       try {
-        // Call the API (expects PATCH /api/conversations/{id}/mode?mode=...)
         await chatApi.toggleConversationMode(conversationId, mode);
-
-        // OPTION 1: Update local conversation state immediately (recommended)
         dispatch({
           type: 'UPDATE_CONVERSATION_MODE',
           payload: { id: conversationId, reply_mode: mode }
         });
-
-        // OPTION 2: Refresh the entire conversation list (fallback)
         const list = await loadConversations();
         syncSelectedConversation(list, conversationId);
-
         return true;
       } catch (error) {
         console.error('Toggle mode error:', error);
@@ -282,13 +278,13 @@ export const useChatData = () => {
     },
     [dispatch, loadConversations, syncSelectedConversation]
   );
+
   const createConversation = useCallback(
     async (phoneNumber) => {
       if (!phoneNumber?.trim()) return null;
       try {
         const response = await chatApi.createConversation(phoneNumber.trim());
         const newConv = response.data;
-        // Reload conversations to include the new one
         await loadConversations();
         return newConv;
       } catch (error) {

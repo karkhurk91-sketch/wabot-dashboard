@@ -1,5 +1,5 @@
 // src/pages/Conversations.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChatProvider, useChat } from '../context/ChatContext';
 import { useChatData } from '../hooks/useChatData';
 import ConversationList from '../components/chat/ConversationList';
@@ -8,14 +8,12 @@ import ConversationSidebar from '../components/chat/ConversationSidebar';
 import StatisticsBar from '../components/chat/StatisticsBar';
 import { getConversationCounts, markConversationAsRead, sendLocation } from '../services/chatApi';
 import { getLeadByConversation } from '../services/leadService';
-import AISummaryPanel from '../components/chat/AISummaryPanel';
 import { useAuth } from '../context/AuthContext';
 
-// Inner component that uses the context
 const ConversationsContent = () => {
   const { state, dispatch } = useChat();
   const { conversations, selectedConversation, messages, loading, notes, tags } = state;
-  const { user } = useAuth(); // for org_id and token
+  const { user } = useAuth();
   const {
     loadConversations,
     searchConversations,
@@ -36,23 +34,18 @@ const ConversationsContent = () => {
   const [searchType, setSearchType] = useState('name_phone');
   const [counts, setCounts] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  // ✅ GOOD
-  const [filteredConversations, setFilteredConversations] = useState([]);  const [leadData, setLeadData] = useState(null);
+  const [filteredConversations, setFilteredConversations] = useState([]);
+  const [leadData, setLeadData] = useState(null);
 
-  // Disable scrolling on main element
   useEffect(() => {
     const mainElement = document.querySelector('main');
-    if (mainElement) {
-      mainElement.classList.add('overflow-hidden');
-    }
+    if (mainElement) mainElement.classList.add('overflow-hidden');
     return () => {
-      if (mainElement) {
-        mainElement.classList.remove('overflow-hidden');
-      }
+      if (mainElement) mainElement.classList.remove('overflow-hidden');
     };
   }, []);
 
-  // ✅ GOOD
+  // Fetch conversations when filter or search changes
   useEffect(() => {
     const fetchList = async () => {
       const list = await loadConversations(filter);
@@ -62,8 +55,9 @@ const ConversationsContent = () => {
     };
     fetchList();
     fetchCounts();
-  }, [filter, searchTerm]);  // ← added searchTerm
+  }, [filter, searchTerm]);
 
+  // Search
   useEffect(() => {
     const runSearch = async () => {
       if (!searchTerm.trim()) {
@@ -79,7 +73,15 @@ const ConversationsContent = () => {
       }
     };
     runSearch();
-  }, [searchTerm, searchType, conversations, searchConversations]);
+  }, [searchTerm, searchType, conversations]);
+
+  // 🔥 Derive displayed conversations from context state
+  const displayConversations = useMemo(() => {
+    if (searchTerm.trim()) {
+      return filteredConversations;
+    }
+    return conversations;
+  }, [conversations, filteredConversations, searchTerm]);
 
   useEffect(() => {
     const fetchLead = async () => {
@@ -108,9 +110,11 @@ const ConversationsContent = () => {
   };
 
   const handleSelectConversation = async (conv) => {
-    await selectConversation(conv);
+    // Find the latest version in the conversations list by ID
+    const fullConv = conversations.find(c => c.id === conv.id) || conv;
+    await selectConversation(fullConv);
     try {
-      await markConversationAsRead(conv.id);
+      await markConversationAsRead(fullConv.id);
     } catch (err) {
       console.error('Failed to mark as read', err);
     }
@@ -126,7 +130,8 @@ const ConversationsContent = () => {
 
   const handleLoadOlder = async () => {
     if (!selectedConversation) return;
-    await loadMessages(selectedConversation.id);
+    const offset = messages.length;
+    await loadMessages(selectedConversation.id, false, offset);
   };
 
   const handleSendLocation = async (latitude, longitude, name, address) => {
@@ -139,35 +144,49 @@ const ConversationsContent = () => {
     }
   };
 
-  // ----- WEBSOCKET FOR REAL‑TIME UPDATES (typing indicator, new messages) -----
+  // WebSocket
   useEffect(() => {
-    if (!selectedConversation?.id) return;
-
     const token = localStorage.getItem('access_token');
     const orgId = user?.org_id;
     if (!token || !orgId) return;
 
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `ws://localhost:8000/ws/alerts?org_id=${orgId}&token=${token}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      // Optionally subscribe to the current conversation
-      ws.send(JSON.stringify({ type: 'subscribe', conversation_id: selectedConversation.id }));
+      ws.send(JSON.stringify({ type: 'subscribe', conversation_id: 'all' }));
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        // Typing indicator events
-        if (data.type === 'typing_start' && data.entity_id === selectedConversation.id) {
+        const convId = data.entity_id;
+
+        if (data.type === 'typing_start' && convId === selectedConversation?.id) {
           dispatch({ type: 'SET_TYPING', payload: true });
-        } else if (data.type === 'typing_stop' && data.entity_id === selectedConversation.id) {
+        } else if (data.type === 'typing_stop' && convId === selectedConversation?.id) {
           dispatch({ type: 'SET_TYPING', payload: false });
-        }
-        // New message events (already handled by NEW_MESSAGE from HTTP polling, but for completeness)
-        else if (data.type === 'new_message' && data.entity_id === selectedConversation.id) {
-          dispatch({ type: 'NEW_MESSAGE', payload: data.data });
+        } else if (data.type === 'new_message' && convId) {
+          const newMsg = data.data;
+
+          // Update the conversation in the list
+          dispatch({
+            type: 'UPDATE_CONVERSATION_META',
+            payload: {
+              id: convId,
+              updates: {
+                last_message_at: newMsg.sort_timestamp || newMsg.created_at,
+                last_message_preview: newMsg.text || newMsg.content || 'New message',
+                last_message_sender: newMsg.sender_type || 'customer',
+                unread_count: newMsg.unread_count || 0,  // ✅ update badge
+              },
+            },
+          });
+
+          // If this is the selected conversation, add the message
+          if (convId === selectedConversation?.id) {
+            dispatch({ type: 'NEW_MESSAGE', payload: newMsg });
+          }
         }
       } catch (err) {
         console.error('WebSocket message error', err);
@@ -185,7 +204,7 @@ const ConversationsContent = () => {
       <StatisticsBar counts={counts} activeFilter={filter} onFilterChange={setFilter} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <ConversationList
-          conversations={filteredConversations || []}
+          conversations={displayConversations || []}
           activeId={selectedConversation?.id}
           onSelect={handleSelectConversation}
           searchTerm={searchTerm}
@@ -203,6 +222,7 @@ const ConversationsContent = () => {
           onSend={handleSend}
           onSendLocation={handleSendLocation}
           onLoadOlder={handleLoadOlder}
+          customer={leadData}
         />
         <ConversationSidebar
           conversation={selectedConversation}
@@ -222,12 +242,10 @@ const ConversationsContent = () => {
           leadData={leadData}
         />
       </div>
-
     </div>
   );
 };
 
-// Main component that provides the ChatProvider
 const Conversations = () => {
   return (
     <ChatProvider>

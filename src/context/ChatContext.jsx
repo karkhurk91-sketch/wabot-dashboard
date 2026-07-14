@@ -38,16 +38,20 @@ const chatReducer = (state, action) => {
     case 'SET_SELECTED_CONVERSATION':
       return { ...state, selectedConversation: action.payload };
     case 'SET_MESSAGES':
-      // Sort messages by sort_timestamp (or created_at as fallback) - oldest first
+      // Sort messages by sort_timestamp (oldest first)
       return { ...state, messages: sortMessages(action.payload) };
     case 'APPEND_MESSAGES':
-      // Remove duplicates and sort the entire list
+      // Used for loading newer messages (rare)
       const existingIds = new Set(state.messages.map(msg => msg.id));
       const uniqueNewMessages = action.payload.filter(msg => !existingIds.has(msg.id));
       const combined = [...state.messages, ...uniqueNewMessages];
       return { ...state, messages: sortMessages(combined) };
+    case 'PREPEND_MESSAGES':  // ✅ NEW: for loading older messages
+      const prependExistingIds = new Set(state.messages.map(msg => msg.id));
+      const uniqueOldMessages = action.payload.filter(msg => !prependExistingIds.has(msg.id));
+      const prependCombined = [...uniqueOldMessages, ...state.messages];
+      return { ...state, messages: sortMessages(prependCombined) };
     case 'NEW_MESSAGE': {
-      // Handle new incoming message
       const newMsg = action.payload;
       let updatedMessages = [...state.messages];
       
@@ -84,7 +88,6 @@ const chatReducer = (state, action) => {
       return { ...state, messages: sortMessages(updatedMessages) };
     }
     case 'UPDATE_MESSAGE': {
-      // Handle message status update (sent, delivered, read, etc.)
       const { messageId, ...updates } = action.payload;
       const updatedMessages = state.messages.map(msg =>
         msg.id === messageId ? { ...msg, ...updates } : msg
@@ -99,8 +102,6 @@ const chatReducer = (state, action) => {
       return { ...state, error: action.payload };
     case 'SET_TYPING':
       return { ...state, typing: action.payload };
-    
-    // ✅ NEW: Update conversation mode in both conversations list and selected conversation
     case 'UPDATE_CONVERSATION_MODE':
       return {
         ...state,
@@ -113,7 +114,6 @@ const chatReducer = (state, action) => {
           ? { ...state.selectedConversation, reply_mode: action.payload.reply_mode }
           : state.selectedConversation,
       };
-    
     default:
       return state;
   }

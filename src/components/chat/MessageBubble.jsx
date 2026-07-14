@@ -5,7 +5,7 @@ import { formatMessageTime } from '../../utils/timeFormatter';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted }) => {
+const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted, senderName }) => {
   const bodyText = message.text ?? message.content ?? '';
   const isSending = message.status === 'sending' || isTempMessage(message);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -153,7 +153,17 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted }) =
           </button>
         )}
 
-        {message.mode && (
+        {/* ✅ Sender label for inbound messages (shows customer name) */}
+        {!isOwn && senderName && (
+          <div className="mb-1 flex items-center">
+            <span className="text-[11px] font-semibold mr-2 px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
+              {senderName}
+            </span>
+          </div>
+        )}
+
+        {/* Mode badge – only for outbound messages (or when mode is not 'user') */}
+        {isOwn && message.mode && (
           <div className="mb-1 flex items-center">
             <span className={`text-[11px] font-semibold mr-2 px-2 py-0.5 rounded-full capitalize ${
               message.mode === 'ai' ? 'bg-violet-100 text-violet-700' :
