@@ -5,7 +5,17 @@ import { formatMessageTime } from '../../utils/timeFormatter';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted, senderName }) => {
+const MessageBubble = ({ 
+  message, 
+  isOwn, 
+  onReply, 
+  onQuoteClick, 
+  highlighted, 
+  senderName, 
+  onPin, 
+  isPinned,
+  canPin = true  // ✅ new prop – default true for backward compatibility
+}) => {
   const bodyText = message.text ?? message.content ?? '';
   const isSending = message.status === 'sending' || isTempMessage(message);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -60,6 +70,13 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted, sen
     setMenuVisible(false);
     if (onReply) {
       onReply(message);
+    }
+  };
+
+  const handlePin = () => {
+    setMenuVisible(false);
+    if (onPin) {
+      onPin(message.id);
     }
   };
 
@@ -153,7 +170,7 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted, sen
           </button>
         )}
 
-        {/* ✅ Sender label for inbound messages (shows customer name) */}
+        {/* Sender label for inbound messages (shows customer name) */}
         {!isOwn && senderName && (
           <div className="mb-1 flex items-center">
             <span className="text-[11px] font-semibold mr-2 px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
@@ -237,6 +254,16 @@ const MessageBubble = ({ message, isOwn, onReply, onQuoteClick, highlighted, sen
             >
               Reply
             </button>
+            {/* ✅ Pin/Unpin button – only if canPin is true */}
+            {canPin && (
+              <button
+                type="button"
+                onClick={handlePin}
+                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+              >
+                {isPinned ? 'Unpin' : 'Pin'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMenuVisible(false)}

@@ -36,6 +36,8 @@ const ConversationsContent = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredConversations, setFilteredConversations] = useState([]);
   const [leadData, setLeadData] = useState(null);
+  // ✅ Pin refresh counter – increment when pin_updated event is received
+  const [pinRefreshCounter, setPinRefreshCounter] = useState(0);
 
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -75,7 +77,7 @@ const ConversationsContent = () => {
     runSearch();
   }, [searchTerm, searchType, conversations]);
 
-  // 🔥 Derive displayed conversations from context state
+  // Derive displayed conversations from context state
   const displayConversations = useMemo(() => {
     if (searchTerm.trim()) {
       return filteredConversations;
@@ -110,7 +112,6 @@ const ConversationsContent = () => {
   };
 
   const handleSelectConversation = async (conv) => {
-    // Find the latest version in the conversations list by ID
     const fullConv = conversations.find(c => c.id === conv.id) || conv;
     await selectConversation(fullConv);
     try {
@@ -168,8 +169,6 @@ const ConversationsContent = () => {
           dispatch({ type: 'SET_TYPING', payload: false });
         } else if (data.type === 'new_message' && convId) {
           const newMsg = data.data;
-
-          // Update the conversation in the list
           dispatch({
             type: 'UPDATE_CONVERSATION_META',
             payload: {
@@ -178,15 +177,18 @@ const ConversationsContent = () => {
                 last_message_at: newMsg.sort_timestamp || newMsg.created_at,
                 last_message_preview: newMsg.text || newMsg.content || 'New message',
                 last_message_sender: newMsg.sender_type || 'customer',
-                unread_count: newMsg.unread_count || 0,  // ✅ update badge
+                unread_count: newMsg.unread_count || 0,
               },
             },
           });
-
-          // If this is the selected conversation, add the message
           if (convId === selectedConversation?.id) {
             dispatch({ type: 'NEW_MESSAGE', payload: newMsg });
           }
+        }
+        // ✅ Handle pin_updated events
+        else if (data.type === 'pin_updated' && data.conversation_id === selectedConversation?.id) {
+          // Increment the refresh counter to trigger reload of pins in ChatWindow
+          setPinRefreshCounter(prev => prev + 1);
         }
       } catch (err) {
         console.error('WebSocket message error', err);
@@ -223,6 +225,7 @@ const ConversationsContent = () => {
           onSendLocation={handleSendLocation}
           onLoadOlder={handleLoadOlder}
           customer={leadData}
+          pinRefreshTrigger={pinRefreshCounter} // ✅ Pass refresh trigger
         />
         <ConversationSidebar
           conversation={selectedConversation}

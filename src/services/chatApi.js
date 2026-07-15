@@ -31,6 +31,17 @@ export const sendMediaMessage = (convId, formData, onUploadProgress, replyToId =
   });
 };
 
+// ========== PINNED MESSAGES ==========
+export const pinMessage = (convId, msgId) =>
+  api.post(`/api/conversations/${convId}/messages/${msgId}/pin`);
+
+export const unpinMessage = (convId, msgId) =>
+  api.delete(`/api/conversations/${convId}/messages/${msgId}/pin`);
+
+export const fetchPinnedMessages = (convId) =>
+  api.get(`/api/conversations/${convId}/pins`);
+
+// ========== Existing exports ==========
 export const fetchConversationNotes = (convId) => api.get(`/api/conversations/${convId}/notes`);
 export const fetchConversationTags = (convId) => api.get(`/api/conversations/${convId}/tags`);
 export const listAgents = () => api.get('/api/conversations/agents');

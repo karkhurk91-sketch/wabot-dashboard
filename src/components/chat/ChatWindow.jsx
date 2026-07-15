@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import MessageInput from './MessageInput';
+import PinnedMessagesBar from './PinnedMessagesBar';
 import { getDateLabel } from '../../utils/timeFormatter';
+import { fetchPinnedMessages, pinMessage, unpinMessage } from '../../services/chatApi';
 
 const ChatWindow = ({
   conversation,
@@ -15,18 +17,22 @@ const ChatWindow = ({
   onSendLocation,
   onMessageSent,
   onLoadOlder,
-  customer, // ✅ New prop: customer data from leadData
+  customer,
+  pinRefreshTrigger,
 }) => {
   const { user, userRole } = useAuth();
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [replyTo, setReplyTo] = useState(null);
   const [highlightedMessage, setHighlightedMessage] = useState(null);
+  const [pinnedMessages, setPinnedMessages] = useState([]);
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
 
+  const permissions = user?.permissions || [];
+  const canPin = permissions.includes('manage_pins') || permissions.includes('manage_conversations') || userRole === 'org_admin';
+
   const phoneNumber = conversation?.customer_phone_number || conversation?.phone || '';
 
-  // ✅ Derive display name with priority: name > phone > email > fallback
   const displayName = 
     customer?.name || 
     conversation?.customer_name || 
@@ -37,6 +43,52 @@ const ChatWindow = ({
 
   const canSend = userRole === 'org_admin' || conversation?.assigned_agent_id === user?.id;
 
+  // ---------- Pinned Messages ----------
+  const loadPinnedMessages = useCallback(async () => {
+    if (!conversation?.id) return;
+    try {
+      const res = await fetchPinnedMessages(conversation.id);
+      setPinnedMessages(res.data || []);
+    } catch (err) {
+      console.error('Failed to load pinned messages:', err);
+      setPinnedMessages([]);
+    }
+  }, [conversation?.id]);
+
+  // Load pins when conversation changes or pinRefreshTrigger changes
+  useEffect(() => {
+    loadPinnedMessages();
+  }, [loadPinnedMessages, pinRefreshTrigger]);
+
+  // Handle pin/unpin actions
+  const handlePin = useCallback(async (msgId) => {
+    if (!conversation?.id || !canPin) return;
+    try {
+      await pinMessage(conversation.id, msgId);
+      await loadPinnedMessages();
+    } catch (err) {
+      console.error('Failed to pin message:', err);
+      alert(err.response?.data?.detail || 'Failed to pin message');
+    }
+  }, [conversation?.id, loadPinnedMessages, canPin]);
+
+  const handleUnpin = useCallback(async (pinId) => {
+    if (!canPin) return;
+    try {
+      await unpinMessage(conversation.id, pinId);
+      // Optimistically remove from local state
+      setPinnedMessages(prev => prev.filter(pin => pin.id !== pinId));
+      // Reload from server to ensure consistency
+      await loadPinnedMessages();
+    } catch (err) {
+      console.error('Failed to unpin message:', err);
+      alert(err.response?.data?.detail || 'Failed to unpin message');
+      // Revert optimistic update if needed
+      await loadPinnedMessages();
+    }
+  }, [conversation?.id, loadPinnedMessages, canPin]);
+
+  // ---------- Existing logic ----------
   useEffect(() => {
     if (isAtBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,6 +156,10 @@ const ChatWindow = ({
     groupedMessages.push({ type: 'message', data: msg });
   });
 
+  const isMessagePinned = (msgId) => {
+    return pinnedMessages.some(pin => pin.message_id === msgId);
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-[#efeae2] h-full overflow-hidden">
       {/* Chat Header */}
@@ -152,8 +208,8 @@ const ChatWindow = ({
             msg.direction === 'outbound' ||
             msg.direction === 'outgoing'
           );
-          // ✅ Pass displayName as senderName for incoming messages
           const senderName = !isOwn ? displayName : null;
+          const pinned = isMessagePinned(msg.id);
           return (
             <MessageBubble
               key={msg.id}
@@ -163,6 +219,9 @@ const ChatWindow = ({
               onReply={handleReply}
               onQuoteClick={handleQuoteClick}
               highlighted={highlightedMessage === msg.id}
+              onPin={() => handlePin(msg.id)}
+              isPinned={pinned}
+              canPin={canPin}
             />
           );
         })}
@@ -170,7 +229,14 @@ const ChatWindow = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
+      {/* Pinned Messages Bar */}
+      <PinnedMessagesBar
+        pins={pinnedMessages}
+        onUnpin={handleUnpin}
+        canManage={canPin}
+      />
+
+      {/* Reply Bar and Message Input */}
       <div className="bg-white p-3 border-t border-gray-200">
         {replyTo && (
           <div className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
